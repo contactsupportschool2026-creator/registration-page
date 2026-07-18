@@ -13,9 +13,41 @@ app.use(express.json());
 const DB_PATH = path.join(__dirname, 'database.json');
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
+// ==========================================
+// DATABASE INITIALIZATION
+// ==========================================
+function initializeDB() {
+    if (!fs.existsSync(DB_PATH)) {
+        console.log("📁 database.json not found. Creating new database...");
+        fs.writeFileSync(DB_PATH, JSON.stringify([], null, 2));
+        console.log("✅ Database initialized successfully");
+    }
+}
+
+// Initialize database on startup
+initializeDB();
+
 // Helpers to read/write the database
-const getDB = () => JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-const saveDB = (data) => fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+const getDB = () => {
+    try {
+        const data = fs.readFileSync(DB_PATH, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error("❌ Error reading database:", error.message);
+        console.log("⚠️ Returning empty array as fallback");
+        return [];
+    }
+};
+
+const saveDB = (data) => {
+    try {
+        fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+        console.log("✅ Database saved successfully");
+    } catch (error) {
+        console.error("❌ Error writing database:", error.message);
+        throw new Error('Failed to save database');
+    }
+};
 
 // ==========================================
 // WEBHOOK SIGNATURE VERIFICATION HELPER
@@ -178,18 +210,23 @@ app.post('/api/webhook/chargily', async (req, res) => {
 // ENDPOINT 3: CHECK PAYMENT STATUS (Used by payment.html)
 // ==========================================
 app.get('/api/check-payment/:invoiceId', (req, res) => {
-    const db = getDB();
-    const student = db.find(s => s.invoiceId === req.params.invoiceId);
-    
-    if (student && student.status === 'paid') {
-        // Return everything payment.html needs to show the 2-step buttons
-        res.json({ 
-            success: true, 
-            groupLink: process.env.TELEGRAM_GROUP_LINK,
-            botLink: `https://t.me/${process.env.TELEGRAM_BOT_USERNAME}?start=${student.invoiceId}`
-        });
-    } else {
-        res.json({ success: false });
+    try {
+        const db = getDB();
+        const student = db.find(s => s.invoiceId === req.params.invoiceId);
+        
+        if (student && student.status === 'paid') {
+            // Return everything payment.html needs to show the 2-step buttons
+            res.json({ 
+                success: true, 
+                groupLink: process.env.TELEGRAM_GROUP_LINK,
+                botLink: `https://t.me/${process.env.TELEGRAM_BOT_USERNAME}?start=${student.invoiceId}`
+            });
+        } else {
+            res.json({ success: false });
+        }
+    } catch (error) {
+        console.error("Check Payment Error:", error.message);
+        res.status(500).json({ error: 'Failed to check payment status' });
     }
 });
 
