@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,18 @@ const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOK
 // Helpers to read/write the database
 const getDB = () => JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
 const saveDB = (data) => fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+
+// ==========================================
+// WEBHOOK SIGNATURE VERIFICATION HELPER
+// ==========================================
+function verifyChargilySignature(payload, signature) {
+    const hash = crypto
+        .createHmac('sha256', process.env.WEBHOOK_SECRET)
+        .update(JSON.stringify(payload))
+        .digest('hex');
+    
+    return hash === signature;
+}
 
 // ==========================================
 // ENDPOINT 1: CREATE CHARGILY CHECKOUT
@@ -84,34 +97,49 @@ app.post('/api/create-checkout', async (req, res) => {
 // ENDPOINT 2: CHARGILY WEBHOOK (Listens for payment success)
 // ==========================================
 app.post('/api/webhook/chargily', async (req, res) => {
-    const eventData = req.body;
-    
-    // Check if the payment is successful
-    if (eventData.status === 'paid') {
-        const invoiceId = eventData.id;
-        const db = getDB();
-        
-        // Find the student in our database.json
-        const studentIndex = db.findIndex(s => s.invoiceId === invoiceId);
-        
-        if (studentIndex !== -1 && db[studentIndex].status === 'pending') {
-            
-            // 1. Update Student Status & Subscription Dates
-            const now = new Date();
-            db[studentIndex].status = 'paid';
-            db[studentIndex].subscriptionStartDate = now.toISOString();
-            
-            // Set expiration to exactly 30 days from now
-            const expiration = new Date(now);
-            expiration.setDate(expiration.getDate() + 30);
-            db[studentIndex].subscriptionEndDate = expiration.toISOString();
-            
-            saveDB(db);
-            const s = db[studentIndex]; // Shortcut variable
+    try {
+        const signature = req.headers['x-chargily-signature'];
+        const payload = req.body;
 
-            // 2. Format Telegram message with ALL requested form data
-            const nizamiText = s.isNizami ? "نظامي" : "حر";
-            const message = `
+        // ✅ SECURITY: Verify webhook signature to prevent fake payments
+        if (!signature) {
+            console.warn("⚠️ Webhook received without signature - REJECTED");
+            return res.status(401).json({ error: 'Missing signature' });
+        }
+
+        if (!verifyChargilySignature(payload, signature)) {
+            console.warn("⚠️ Webhook signature mismatch - REJECTED (possible attack)");
+            return res.status(401).json({ error: 'Invalid signature' });
+        }
+
+        console.log("✅ Webhook signature verified - processing payment");
+
+        // Check if the payment is successful
+        if (payload.status === 'paid') {
+            const invoiceId = payload.id;
+            const db = getDB();
+            
+            // Find the student in our database.json
+            const studentIndex = db.findIndex(s => s.invoiceId === invoiceId);
+            
+            if (studentIndex !== -1 && db[studentIndex].status === 'pending') {
+                
+                // 1. Update Student Status & Subscription Dates
+                const now = new Date();
+                db[studentIndex].status = 'paid';
+                db[studentIndex].subscriptionStartDate = now.toISOString();
+                
+                // Set expiration to exactly 30 days from now
+                const expiration = new Date(now);
+                expiration.setDate(expiration.getDate() + 30);
+                db[studentIndex].subscriptionEndDate = expiration.toISOString();
+                
+                saveDB(db);
+                const s = db[studentIndex]; // Shortcut variable
+
+                // 2. Format Telegram message with ALL requested form data
+                const nizamiText = s.isNizami ? "نظامي" : "حر";
+                const message = `
 🟢 *دفعة جديدة ناجحة!*
 
 👤 *الإسم:* ${s.firstName} ${s.lastName}
@@ -122,23 +150,28 @@ app.post('/api/webhook/chargily', async (req, res) => {
 🏫 *اسم الثانوية:* ${s.schoolName}
 
 💎 *الحالة:* مدفوع (2000 دج)
-            `;
-            
-            const supportMention = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
+                `;
+                
+                const supportMention = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
 
-            // 3. Send to your personal Telegram
-            await axios.post(TELEGRAM_API, {
-                chat_id: process.env.TELEGRAM_CHAT_ID,
-                text: message + supportMention,
-                parse_mode: 'Markdown'
-            });
+                // 3. Send to your personal Telegram
+                await axios.post(TELEGRAM_API, {
+                    chat_id: process.env.TELEGRAM_CHAT_ID,
+                    text: message + supportMention,
+                    parse_mode: 'Markdown'
+                });
 
-            console.log(`Payment confirmed and Telegram notified for ${s.firstName} ${s.lastName}`);
+                console.log(`Payment confirmed and Telegram notified for ${s.firstName} ${s.lastName}`);
+            }
         }
+        
+        // Always respond with 200 OK to Chargily so they know we received it
+        res.status(200).send('OK');
+
+    } catch (error) {
+        console.error("Webhook Error:", error.message);
+        res.status(500).json({ error: 'Webhook processing failed' });
     }
-    
-    // Always respond with 200 OK to Chargily so they know we received it
-    res.status(200).send('OK');
 });
 
 // ==========================================
