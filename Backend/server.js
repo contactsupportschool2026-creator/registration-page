@@ -14,6 +14,24 @@ const DB_PATH = path.join(__dirname, 'database.json');
 const TELEGRAM_API = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
 // ==========================================
+// RACE CONDITION PREVENTION: Processing Lock
+// ==========================================
+// Keeps track of invoices currently being processed
+const processingInvoices = new Set();
+
+function lockInvoice(invoiceId) {
+    if (processingInvoices.has(invoiceId)) {
+        return false; // Already processing
+    }
+    processingInvoices.add(invoiceId);
+    return true; // Successfully locked
+}
+
+function unlockInvoice(invoiceId) {
+    processingInvoices.delete(invoiceId);
+}
+
+// ==========================================
 // DATABASE INITIALIZATION
 // ==========================================
 function initializeDB() {
@@ -130,31 +148,40 @@ app.post('/api/create-checkout', async (req, res) => {
 // ENDPOINT 2: CHARGILY WEBHOOK (Listens for payment success)
 // ==========================================
 app.post('/api/webhook/chargily', async (req, res) => {
-    try {
-        const signature = req.headers['x-chargily-signature'];
-        const payload = req.body;
+    const signature = req.headers['x-chargily-signature'];
+    const payload = req.body;
 
-        // ✅ SECURITY: Verify webhook signature to prevent fake payments
-        if (!signature) {
-            console.warn("⚠️ Webhook received without signature - REJECTED");
-            return res.status(401).json({ error: 'Missing signature' });
+    // ✅ SECURITY: Verify webhook signature to prevent fake payments
+    if (!signature) {
+        console.warn("⚠️ Webhook received without signature - REJECTED");
+        return res.status(401).json({ error: 'Missing signature' });
+    }
+
+    if (!verifyChargilySignature(payload, signature)) {
+        console.warn("⚠️ Webhook signature mismatch - REJECTED (possible attack)");
+        return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    console.log("✅ Webhook signature verified - processing payment");
+
+    // Check if the payment is successful
+    if (payload.status === 'paid') {
+        const invoiceId = payload.id;
+
+        // 🔒 RACE CONDITION PREVENTION: Try to lock this invoice
+        if (!lockInvoice(invoiceId)) {
+            console.warn(`⚠️ Invoice ${invoiceId} already being processed - DUPLICATE REJECTED`);
+            // Still respond 200 so Chargily doesn't retry
+            return res.status(200).send('OK');
         }
 
-        if (!verifyChargilySignature(payload, signature)) {
-            console.warn("⚠️ Webhook signature mismatch - REJECTED (possible attack)");
-            return res.status(401).json({ error: 'Invalid signature' });
-        }
-
-        console.log("✅ Webhook signature verified - processing payment");
-
-        // Check if the payment is successful
-        if (payload.status === 'paid') {
-            const invoiceId = payload.id;
+        try {
             const db = getDB();
             
             // Find the student in our database.json
             const studentIndex = db.findIndex(s => s.invoiceId === invoiceId);
             
+            // Double check status is still 'pending' (extra safety)
             if (studentIndex !== -1 && db[studentIndex].status === 'pending') {
                 
                 // 1. Update Student Status & Subscription Dates
@@ -195,17 +222,23 @@ app.post('/api/webhook/chargily', async (req, res) => {
                     parse_mode: 'Markdown'
                 });
 
-                console.log(`Payment confirmed and Telegram notified for ${s.firstName} ${s.lastName}`);
+                console.log(`✅ Payment confirmed and Telegram notified for ${s.firstName} ${s.lastName}`);
+            } else if (studentIndex !== -1 && db[studentIndex].status === 'paid') {
+                console.warn(`⚠️ Invoice ${invoiceId} already marked as paid - DUPLICATE PAYMENT IGNORED`);
+            } else {
+                console.warn(`❌ Invoice ${invoiceId} not found in database`);
             }
+        } catch (error) {
+            console.error("Webhook Error:", error.message);
+            // Still respond 200 to Chargily even if there's an error
+        } finally {
+            // Always unlock when done
+            unlockInvoice(invoiceId);
         }
-        
-        // Always respond with 200 OK to Chargily so they know we received it
-        res.status(200).send('OK');
-
-    } catch (error) {
-        console.error("Webhook Error:", error.message);
-        res.status(500).json({ error: 'Webhook processing failed' });
     }
+    
+    // Always respond with 200 OK to Chargily so they know we received it
+    res.status(200).send('OK');
 });
 
 // ==========================================
