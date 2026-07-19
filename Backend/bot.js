@@ -307,19 +307,55 @@ bot.onText(/\/help/, async (msg) => {
 \`/getstudent <invoiceId>\` — Full details for one student
 \`/search <name>\` — Search students by first or last name
 
+*💳 Payments*
+\`/sendlink <invoiceId>\` — Send a payment renewal link to a student
+\`/extend <chatId> <days>\` — Extend a student's subscription by N days
+
 *✏️ Edit Records*
 \`/updatestatus <invoiceId> <status>\` — Change status (pending/paid/warned/kicked)
 \`/updatechat <invoiceId> <chatId>\` — Link a Telegram chat to a student
-\`/extend <chatId> <days>\` — Extend a student's subscription
 \`/delete <invoiceId>\` — Remove a student from the database
 
 📌 *Examples:*
 \`/search Ahmed\`
-\`/updatestatus inv_12345 paid\`
+\`/sendlink inv_12345\`
+\`/extend 123456789 7\`
 \`/getstudent inv_12345\`
 `;
 
     await safeSend(chatId, helpMessage, { parse_mode: 'Markdown' });
+});
+
+// ==========================================
+// ADMIN COMMAND: /sendlink - Manually send a payment link to a student
+// ==========================================
+bot.onText(/\/sendlink (.+)/, async (msg, match) => {
+    const adminChatId = msg.chat.id;
+    if (!isAdmin(adminChatId)) return safeSend(adminChatId, '⛔ Unauthorized.');
+
+    try {
+        const invoiceId = match[1].trim();
+        const db        = await readDB();
+        const student   = db.find(s => s.invoiceId === invoiceId);
+
+        if (!student) {
+            return safeSend(adminChatId, `❌ *Student not found* with invoice ID: \`${invoiceId}\``, { parse_mode: 'Markdown' });
+        }
+
+        if (!student.chatId) {
+            return safeSend(adminChatId, `⚠️ *${student.firstName} ${student.lastName}* has not linked their Telegram account yet — cannot send the link.`, { parse_mode: 'Markdown' });
+        }
+
+        await safeSend(adminChatId, `⏳ Generating payment link for *${student.firstName} ${student.lastName}*…`, { parse_mode: 'Markdown' });
+
+        const checkoutUrl = await createRenewalLink(student);
+        await safeSend(student.chatId, `💰 *Payment Link*\n\nHere is your payment link to renew your subscription:\n\n${checkoutUrl}${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
+        await safeSend(adminChatId, `✅ Payment link sent to *${student.firstName} ${student.lastName}*.`, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+        console.error('❌ [/sendlink] Error:', error.message);
+        await safeSend(adminChatId, `⚠️ Failed to send payment link: ${error.message}`);
+    }
 });
 
 // ==========================================
@@ -405,6 +441,9 @@ cron.schedule('0 8 * * *', async () => {
 
     const now = new Date();
 
+    // Collect expiring students to send the admin a single summary
+    const expiringSoon = []; // paid students expiring in 1–6 days
+
     for (const student of db) {
         if (!student.subscriptionEndDate || !student.chatId) continue;
         if (student.status === 'kicked') continue;
@@ -414,8 +453,11 @@ cron.schedule('0 8 * * *', async () => {
             const diffTime = endDate - now;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays <= 6 && diffDays >= 5 && student.status === 'paid') {
-                await safeSend(student.chatId, `⏳ *Reminder!*\n\nYour subscription expires in ${diffDays} days. Please prepare for the next payment.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
+            if (diffDays <= 6 && diffDays >= 1 && student.status === 'paid') {
+                // Remind the student
+                await safeSend(student.chatId, `⏳ *Reminder!*\n\nYour subscription expires in ${diffDays} day(s). Please prepare for the next payment.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
+                // Collect for admin summary
+                expiringSoon.push({ student, diffDays });
             }
 
             if (diffDays <= 0 && student.status === 'paid') {
@@ -429,6 +471,17 @@ cron.schedule('0 8 * * *', async () => {
         } catch (error) {
             console.error(`❌ [cron:daily] Error processing ${student.firstName} ${student.lastName}:`, error.message);
         }
+    }
+
+    // Send admin a daily summary of expiring subscriptions
+    if (expiringSoon.length > 0) {
+        let adminMsg = `📅 *Daily Expiry Alert — ${expiringSoon.length} student(s) expiring soon:*\n\n`;
+        expiringSoon.forEach(({ student: s, diffDays }) => {
+            adminMsg += `• *${s.firstName} ${s.lastName}* — ${diffDays} day(s) left\n`;
+            adminMsg += `  Invoice: \`${s.invoiceId}\`\n`;
+            adminMsg += `  ➡️ Use /sendlink ${s.invoiceId} to send them a payment link\n\n`;
+        });
+        await safeSend(process.env.TELEGRAM_CHAT_ID, adminMsg, { parse_mode: 'Markdown' });
     }
 }, { timezone: 'Africa/Algiers' });
 
