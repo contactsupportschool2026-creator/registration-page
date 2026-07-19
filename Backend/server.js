@@ -102,6 +102,8 @@ app.post(
                         db[studentIndex].status                = 'paid';
                         db[studentIndex].subscriptionStartDate = now.toISOString();
                         db[studentIndex].subscriptionEndDate   = expiration.toISOString();
+                        // Increment for every confirmed payment (first registration + all renewals)
+                        db[studentIndex].renewalCount = (db[studentIndex].renewalCount || 0) + 1;
 
                         // Return a plain-data snapshot — lock released after this returns
                         return { ...db[studentIndex] };
@@ -135,6 +137,7 @@ app.post(
 
 💎 *الحالة:* مدفوع (2000 دج)
 📆 *الاشتراك حتى:* ${newExpiry}
+🔁 *عدد التجديدات:* ${s.renewalCount}
                     `;
                     const supportMention = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
 
@@ -188,7 +191,8 @@ app.post('/api/create-checkout', async (req, res) => {
             chatId: null,
             invoiceId: null,
             warnedTimestamp: null,
-            linkSentTimestamp: null
+            linkSentTimestamp: null,
+            renewalCount: 0        // incremented by 1 on every confirmed payment
         };
 
         const chargilyPayload = {

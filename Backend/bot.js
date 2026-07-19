@@ -118,6 +118,7 @@ bot.onText(/\/getall/, async (msg) => {
             message += `*${index + 1}. ${student.firstName} ${student.lastName}*\n`;
             message += `   Invoice: \`${student.invoiceId}\`\n`;
             message += `   Status: ${student.status}\n`;
+            message += `   Renewals: ${student.renewalCount || 0}\n`;
             message += `   Telegram: ${student.chatId || 'Not linked'}\n`;
             message += `   Expires: ${student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : 'N/A'}\n\n`;
         });
@@ -417,6 +418,7 @@ function formatStudentCard(student) {
 
 💳 *Payment Info*
 *Status:* ${student.status}
+*Renewals:* ${student.renewalCount || 0} month(s) paid
 *Start Date:* ${student.subscriptionStartDate ? student.subscriptionStartDate.split('T')[0] : 'N/A'}
 *Expires:* ${student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : 'N/A'}
 
