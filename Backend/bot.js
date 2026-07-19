@@ -59,7 +59,7 @@ async function createRenewalLink(student) {
 
     // withDB acquires the cross-process lock before updating the student record
     await withDB(db => {
-        const idx = db.findIndex(s => s.chatId === student.chatId);
+        const idx = db.findIndex(s => s.chatId && s.chatId.toString() === student.chatId.toString());
         if (idx !== -1) {
             db[idx].invoiceId         = res.data.id;
             db[idx].status            = 'pending';
@@ -83,7 +83,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
         await withDB(db => {
             const student = db.find(s => s.invoiceId === invoiceId);
             if (student) {
-                student.chatId = chatId;
+                student.chatId = chatId.toString(); // always store as string
                 studentName    = student.firstName;
             }
         });

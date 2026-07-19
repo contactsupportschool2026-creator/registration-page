@@ -26,31 +26,45 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const invoiceId = urlParams.get('invoice');
+
+        // Chargily appends ?checkout_id=<id> to the back_url after payment.
+        // We also accept ?invoice=<id> as a legacy fallback.
+        const invoiceId = urlParams.get('checkout_id') || urlParams.get('invoice');
 
         if (!invoiceId) {
-            document.getElementById('statusText').innerText = "Error: No invoice found.";
+            document.getElementById('statusText').innerText = "Error: Payment reference not found.";
+            document.getElementById('subText').innerText   = "Please contact support if you completed a payment.";
             document.getElementById('spinner').style.display = 'none';
         } else {
+            let attempts = 0;
+            const maxAttempts = 40; // poll for up to ~2 minutes
+
             const interval = setInterval(async () => {
+                attempts++;
                 try {
-                    // Use relative URL - automatically uses current domain
-                    const res = await fetch(`/api/check-payment/${invoiceId}`);
+                    const res  = await fetch(`/api/check-payment/${invoiceId}`);
                     const data = await res.json();
 
                     if (data.success) {
                         clearInterval(interval);
                         document.getElementById('spinner').style.display = 'none';
-                        document.getElementById('statusText').innerText = "Payment Successful! 🎉";
-                        document.getElementById('subText').innerText = "Complete steps 1 and 2 below:";
-                        
-                        document.getElementById('botBtn').href = data.botLink;
+                        document.getElementById('statusText').innerText  = "Payment Successful! 🎉";
+                        document.getElementById('subText').innerText     = "Complete steps 1 and 2 below:";
+
+                        document.getElementById('botBtn').href         = data.botLink;
                         document.getElementById('botBtn').style.display = 'block';
 
-                        document.getElementById('groupBtn').href = data.groupLink;
+                        document.getElementById('groupBtn').href         = data.groupLink;
                         document.getElementById('groupBtn').style.display = 'block';
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(interval);
+                        document.getElementById('spinner').style.display = 'none';
+                        document.getElementById('statusText').innerText  = "Taking longer than expected.";
+                        document.getElementById('subText').innerText     = "If you paid, please contact support — your access will be granted shortly.";
                     }
-                } catch (e) { console.error("Polling error", e); }
+                } catch (e) {
+                    console.error("Polling error", e);
+                }
             }, 3000);
         }
     </script>
