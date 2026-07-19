@@ -5,6 +5,7 @@ const crypto  = require('crypto');
 require('dotenv').config();
 
 const { initializeDB, withDB } = require('./db');
+const { withRetry }            = require('./retry');
 
 const app = express();
 app.use(cors());
@@ -78,15 +79,18 @@ app.post('/api/create-checkout', async (req, res) => {
             webhook_url: `${process.env.BACKEND_URL}/api/webhook/chargily`
         };
 
-        const chargilyResponse = await axios.post(
-            'https://pay.chargily.com/api/v2/checkouts',
-            chargilyPayload,
-            {
-                headers: {
-                    'Authorization': `Bearer ${process.env.CHARGILY_SECRET_KEY}`,
-                    'Content-Type': 'application/json'
+        const chargilyResponse = await withRetry(
+            () => axios.post(
+                'https://pay.chargily.com/api/v2/checkouts',
+                chargilyPayload,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.CHARGILY_SECRET_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
                 }
-            }
+            ),
+            { label: 'chargily:create-checkout' }
         );
 
         studentData.invoiceId = chargilyResponse.data.id;
@@ -134,10 +138,11 @@ app.post('/api/webhook/chargily', async (req, res) => {
         }
 
         try {
-            let studentName = null;
-
-            // withDB holds the cross-process file lock for the full read-modify-write
-            await withDB(async db => {
+            // ── Step 1: update DB under the lock (no network calls here) ──────
+            // withDB is synchronous-callback only; we collect a snapshot of the
+            // student data we need for the Telegram message, then release the lock
+            // before making any network calls.
+            const studentSnapshot = await withDB(db => {
                 const studentIndex = db.findIndex(s => s.invoiceId === invoiceId);
 
                 if (studentIndex !== -1 && db[studentIndex].status === 'pending') {
@@ -149,12 +154,22 @@ app.post('/api/webhook/chargily', async (req, res) => {
                     db[studentIndex].subscriptionStartDate = now.toISOString();
                     db[studentIndex].subscriptionEndDate   = expiration.toISOString();
 
-                    studentName = `${db[studentIndex].firstName} ${db[studentIndex].lastName}`;
+                    // Return a plain-data snapshot — lock is released after this returns
+                    return { ...db[studentIndex] };
 
-                    // Build Telegram message (inside withDB so we have the data)
-                    const s          = db[studentIndex];
-                    const nizamiText = s.isNizami ? 'نظامي' : 'حر';
-                    const message    = `
+                } else if (studentIndex !== -1 && db[studentIndex].status === 'paid') {
+                    console.warn(`⚠️ Invoice ${invoiceId} already marked as paid - DUPLICATE IGNORED`);
+                } else {
+                    console.warn(`❌ Invoice ${invoiceId} not found in database`);
+                }
+                return null;
+            });
+
+            // ── Step 2: network I/O after the lock is released ────────────────
+            if (studentSnapshot) {
+                const s          = studentSnapshot;
+                const nizamiText = s.isNizami ? 'نظامي' : 'حر';
+                const message    = `
 🟢 *دفعة جديدة ناجحة!*
 
 👤 *الإسم:* ${s.firstName} ${s.lastName}
@@ -166,25 +181,19 @@ app.post('/api/webhook/chargily', async (req, res) => {
 🏫 *اسم الثانوية:* ${s.schoolName}
 
 💎 *الحالة:* مدفوع (2000 دج)
-                    `;
-                    const supportMention = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
+                `;
+                const supportMention = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
 
-                    // Send Telegram notification (inside withDB — lock released only after write)
-                    await axios.post(TELEGRAM_API, {
+                await withRetry(
+                    () => axios.post(TELEGRAM_API, {
                         chat_id:    process.env.TELEGRAM_CHAT_ID,
                         text:       message + supportMention,
                         parse_mode: 'Markdown'
-                    });
+                    }, { timeout: 10_000 }),
+                    { label: 'telegram:webhook-notify' }
+                );
 
-                } else if (studentIndex !== -1 && db[studentIndex].status === 'paid') {
-                    console.warn(`⚠️ Invoice ${invoiceId} already marked as paid - DUPLICATE IGNORED`);
-                } else {
-                    console.warn(`❌ Invoice ${invoiceId} not found in database`);
-                }
-            });
-
-            if (studentName) {
-                console.log(`✅ Payment confirmed and Telegram notified for ${studentName}`);
+                console.log(`✅ Payment confirmed and Telegram notified for ${s.firstName} ${s.lastName}`);
             }
 
         } catch (error) {

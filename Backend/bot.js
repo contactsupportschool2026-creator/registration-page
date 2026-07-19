@@ -4,6 +4,7 @@ const axios       = require('axios');
 require('dotenv').config();
 
 const { initializeDB, readDB, withDB } = require('./db');
+const { withRetry }                    = require('./retry');
 
 const bot          = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 const SUPPORT_TEXT = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
@@ -23,9 +24,12 @@ function isAdmin(chatId) {
 // ==========================================
 async function safeSend(chatId, text, options = {}) {
     try {
-        await bot.sendMessage(chatId, text, options);
+        await withRetry(
+            () => bot.sendMessage(chatId, text, options),
+            { label: `telegram:sendMessage:${chatId}`, maxRetries: 3, baseDelayMs: 1000 }
+        );
     } catch (err) {
-        console.error(`❌ [safeSend] Failed to send message to ${chatId}:`, err.message);
+        console.error(`❌ [safeSend] Failed to send message to ${chatId} after retries:`, err.message);
     }
 }
 
@@ -43,12 +47,15 @@ async function createRenewalLink(student) {
         webhook_url: `${process.env.BACKEND_URL}/api/webhook/chargily`
     };
 
-    const res = await axios.post('https://pay.chargily.com/api/v2/checkouts', payload, {
-        headers: {
-            'Authorization': `Bearer ${process.env.CHARGILY_SECRET_KEY}`,
-            'Content-Type': 'application/json'
-        }
-    });
+    const res = await withRetry(
+        () => axios.post('https://pay.chargily.com/api/v2/checkouts', payload, {
+            headers: {
+                'Authorization': `Bearer ${process.env.CHARGILY_SECRET_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        }),
+        { label: 'chargily:renewal-link' }
+    );
 
     // withDB acquires the cross-process lock before updating the student record
     await withDB(db => {
