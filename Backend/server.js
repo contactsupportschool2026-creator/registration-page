@@ -162,5 +162,8 @@ app.get('/api/check-payment/:invoiceId', async (req, res) => {
     }
 });
 
+// Start the Telegram bot (polling + cron jobs)
+require('./bot');
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
