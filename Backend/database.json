@@ -88,5 +88,23 @@
     "warnedTimestamp": null,
     "linkSentTimestamp": null,
     "renewalCount": 0
+  },
+  {
+    "firstName": "CHECK",
+    "lastName": "STRUCT",
+    "email": "check@test.com",
+    "dob": "2000-01-01",
+    "wilaya": "16 - Alger",
+    "shaba": "Maths",
+    "isNizami": true,
+    "schoolName": "Check Structure",
+    "status": "pending",
+    "subscriptionStartDate": null,
+    "subscriptionEndDate": null,
+    "chatId": null,
+    "invoiceId": "01kyg4xx65xhcdc6sx1mx4za8b",
+    "warnedTimestamp": null,
+    "linkSentTimestamp": null,
+    "renewalCount": 0
   }
 ]
