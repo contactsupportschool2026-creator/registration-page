@@ -109,17 +109,17 @@ app.post(
                     const newExpiry  = s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : 'N/A';
 
                     const message = `
-🟢 *دفعة جديدة ناججة!*
+🟢 *دفعة جديدة ناجحة!*
 
 🥐 **الإسم:** ${s.firstName} ${s.lastName}
 📧 **البريد:** ${s.email}
 📅 **تاريخ الميلاد:** ${s.dob}
-🏙️ **الولاى)*ت:* ${s.wilaya}
+🏙️ **الولاية:** ${s.wilaya}
 📚 **الشعبة:** ${s.shaba}
 🏫 **نوعية التعليم:** ${nizamiText}
 🏫 **اسم الثانوية:** ${s.schoolName}
 
-💎 **الحالة:** مدفوع (2000 دج)
+💎 **الحالة:** مدف؈ع (2000 دج)
 📆 **الاشتراك حتى:** ${newExpiry}
 📁 **عاد التجديدات:** ${s.renewalCount}
                     `;
@@ -131,7 +131,7 @@ app.post(
                     console.log(`✅ Payment confirmed: ${s.firstName} ${s.lastName}`);
                 }
             } catch (error) {
-                console.error('ʣ  Webhook Error:', error.message);
+                console.error('❌ Webhook Error:', error.message);
             } finally {
                 unlockInvoice(invoiceId);
             }
@@ -176,14 +176,21 @@ app.post('/api/create-checkout', async (req, res) => {
             renewalCount: 0
         };
 
+        // Chargily Pay v2 API: https://pay.chargily.net/api/v2/checkouts
         const chargilyPayload = {
             amount: 2000,
             currency: 'dzd',
+            payment_method: 'edahabia',
+            success_url: `${process.env.FRONTEND_URL}/payment.html`,
+            webhook_endpoint: `${process.env.BACKEND_URL}/api/webhook/chargily`,
             description: `School Registration: ${firstName} ${lastName}`,
-            client_name: `${firstName} ${lastName}`,
-            client_email: email,
-            back_url: `${process.env.FRONTEND_URL}/payment.html`,
-            webhook_url: `${process.env.BACKEND_URL}/api/webhook/chargily`
+            metadata: {
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                wilaya: wilaya,
+                shaba: shaba
+            }
         };
 
         console.log('DEBUG: Creating chargily checkout', JSON.stringify(chargilyPayload));
@@ -204,7 +211,7 @@ app.post('/api/create-checkout', async (req, res) => {
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
 
     } catch (error) {
-        console.error('�🔈 Checkout Error:');
+        console.error('❌ Checkout Error:');
         console.error('  Message:', error.message);
         if (error.response) {
             console.error('  Status:', error.response.status);
