@@ -84,7 +84,7 @@ async function createRenewalLink(student) {
     await withDB(db => {
         const idx = db.findIndex(s => s.chatId && s.chatId.toString() === student.chatId.toString());
         if (idx !== -1) {
-            db[idx].invoiceId         = res.data.id;
+            db[idx].renewalInvoiceId   = res.data.id;
             db[idx].status            = 'pending';
             db[idx].linkSentTimestamp = new Date().toISOString();
         }
