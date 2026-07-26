@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitBtn = document.getElementById('submitBtn');
     const dobInput = document.getElementById('dob');
 
-    // Auto-format Date of Birth to YYYY-MM-DD
     dobInput.addEventListener('input', (e) => {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length >= 2) value = value.substring(0, 4) + '-' + value.substring(4);
@@ -11,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.value = value;
     });
 
-    // Email validation helper
     function isValidEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
@@ -46,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.textContent = 'Processing...';
 
         try {
-            // Use relative URL - works on both localhost and production
             const response = await fetch('/api/create-checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -62,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Payment Error:", error);
-            alert("There was an error connecting to the payment gateway.");
+            alert("Error: " + (error.message || "Unknown"));
             submitBtn.disabled = false;
             submitBtn.textContent = 'Proceed to Payment';
         }
