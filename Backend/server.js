@@ -58,17 +58,28 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
         if (!lockInvoice(invoiceId)) return res.status(200).send('OK');
         try {
             const snapshot = await withDB(db => {
-                const idx = db.findIndex(s => s.invoiceId === invoiceId);
-                if (idx !== -1 && db[idx].status === 'pending') {
+                const idx = db.findIndex(s => s.invoiceId === invoiceId || s.renewalInvoiceId === invoiceId || (s.paymentHistory && s.paymentHistory.some(p => p.invoiceId === invoiceId)));
+                if (idx !== -1 && (db[idx].status === 'pending' || db[idx].status === 'paid')) {
                     const now = new Date(), exp = new Date(now);
                     exp.setDate(exp.getDate() + 30);
+                    const isRenewal = db[idx].status === 'paid';
                     db[idx].status = 'paid';
-                    db[idx].subscriptionStartDate = now.toISOString();
+                    // Only set start date on FIRST payment — preserve on renewals
+                    if (!db[idx].subscriptionStartDate) {
+                        db[idx].subscriptionStartDate = now.toISOString();
+                    }
                     db[idx].subscriptionEndDate = exp.toISOString();
                     db[idx].renewalCount = (db[idx].renewalCount || 0) + 1;
+                    // Track each payment in paymentHistory
+                    if (!db[idx].paymentHistory) db[idx].paymentHistory = [];
+                    db[idx].paymentHistory.push({
+                        date: now.toISOString(),
+                        amount: 2000,
+                        currency: 'DZD',
+                        invoiceId: db[idx].invoiceId,
+                        renewalNumber: db[idx].renewalCount
+                    });
                     return { ...db[idx] };
-                } else if (idx !== -1 && db[idx].status === 'paid') {
-                    console.warn('Invoice already paid:', invoiceId);
                 }
                 return null;
             });
@@ -127,7 +138,7 @@ app.post('/api/create-checkout', async (req, res) => {
 
         studentData.invoiceId = chargilyResponse.data.id;
         await withDB(db => db.push(studentData));
-        await telegramNotify('\uD83C\uDD95 *New Registration*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
+        await telegramNotify('\u83C\u2095 *New Registration*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
 
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
 
