@@ -44,11 +44,16 @@ async function generateStudentPDF(student) {
     doc.moveDown(0.5);
 
     // ── Details table ──
+    const subEnd = student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : '—';
+    const scoreText = student.score != null ? `${student.score}/100` : '—';
+
     const fields = [
         ['First Name', student.firstName || '—'],
         ['Last Name',  student.lastName || '—'],
         ['Invoice ID', student.invoiceId || '—'],
         ['Status',     student.status || '—'],
+        ['Score',      scoreText],
+        ['Expires',    subEnd],
         ['Wilaya',     student.wilaya || '—'],
         ['Specialty',  student.specialty || '—'],
         ['School',     student.school || '—'],
@@ -103,20 +108,22 @@ async function generateStudentsPDF(db) {
 
     // ── Table header ──
     const cols = [
-        { label: '#',    x: 30,  w: 30 },
-        { label: 'Name', x: 60,  w: 140 },
-        { label: 'Invoice', x: 200, w: 100 },
-        { label: 'Status',  x: 300, w: 60 },
-        { label: 'Wilaya',  x: 360, w: 80 },
-        { label: 'Specialty', x: 440, w: 120 },
-        { label: 'School', x: 560, w: 120 },
-        { label: 'Phone',  x: 680, w: 110 },
+        { label: '#',    x: 30,  w: 25 },
+        { label: 'Name', x: 55,  w: 120 },
+        { label: 'Invoice', x: 175, w: 90 },
+        { label: 'Status',  x: 265, w: 55 },
+        { label: 'Score',   x: 320, w: 45 },
+        { label: 'Expires', x: 365, w: 70 },
+        { label: 'Wilaya',  x: 435, w: 70 },
+        { label: 'Specialty', x: 505, w: 100 },
+        { label: 'School', x: 605, w: 100 },
+        { label: 'Phone',  x: 705, w: 90 },
     ];
     const rowH = 20;
     const headerY = doc.y;
 
     // Header background
-    doc.rect(30, headerY, 760, rowH).fillColor('#374151').fill();
+    doc.rect(30, headerY, 765, rowH).fillColor('#374151').fill();
     cols.forEach(col => {
         doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8)
            .text(col.label, col.x + 2, headerY + 6, { width: col.w - 4, align: 'left' });
@@ -133,7 +140,7 @@ async function generateStudentsPDF(db) {
             doc.addPage();
             y = 30;
             // Reprint header
-            doc.rect(30, y, 760, rowH).fillColor('#374151').fill();
+            doc.rect(30, y, 765, rowH).fillColor('#374151').fill();
             cols.forEach(col => {
                 doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8)
                    .text(col.label, col.x + 2, y + 6, { width: col.w - 4, align: 'left' });
@@ -143,7 +150,7 @@ async function generateStudentsPDF(db) {
 
         // Row stripe
         if (i % 2 === 0) {
-            doc.rect(30, y, 760, rowH).fillColor('#f9fafb').fill();
+            doc.rect(30, y, 765, rowH).fillColor('#f9fafb').fill();
         }
 
         const statusColors = { paid: '#22c55e', pending: '#f59e0b', warned: '#ef4444', kicked: '#6b7280' };
@@ -152,6 +159,8 @@ async function generateStudentsPDF(db) {
             name,
             s.invoiceId || '—',
             s.status || '—',
+            s.score != null ? `${s.score}/100` : '—',
+            s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : '—',
             s.wilaya || '—',
             s.specialty || '—',
             s.school || '—',
