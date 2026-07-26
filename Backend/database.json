@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "firstName": "TEST",
+    "lastName": "DEBUG",
+    "email": "test@test.com",
+    "dob": "2000-01-01",
+    "wilaya": "16 - Alger",
+    "shaba": "Maths",
+    "isNizami": true,
+    "schoolName": "Test School",
+    "status": "pending",
+    "subscriptionStartDate": null,
+    "subscriptionEndDate": null,
+    "chatId": null,
+    "invoiceId": "01kyg2gns8paw45qqdjq1nm3td",
+    "warnedTimestamp": null,
+    "linkSentTimestamp": null,
+    "renewalCount": 0
+  }
+]
