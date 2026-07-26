@@ -538,8 +538,7 @@ bot.on('callback_query', async (query) => {
             }
             await bot.editMessageText(`⏳ Generating PDF for *${db.length}* student(s)…`, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
 
-            const dbFilePath = require('path').resolve(__dirname, 'db.json');
-            const rawDb = require(dbFilePath); // fresh read
+            const rawDb = await readDB(); // proper DB read through lock
             const { generateStudentsPDF } = require('./pdf');
             const pdfBuffer = await generateStudentsPDF(rawDb);
             const datePart = new Date().toISOString().split('T')[0];
