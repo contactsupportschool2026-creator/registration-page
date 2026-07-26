@@ -2,6 +2,7 @@ const express = require('express');
 const cors    = require('cors');
 const axios   = require('axios');
 const crypto  = require('crypto');
+const path    = require('path');
 require('dotenv').config();
 
 const { initializeDB, readDB, withDB } = require('./db');
@@ -9,6 +10,9 @@ const { withRetry }                    = require('./retry');
 
 const app = express();
 app.use(cors());
+
+// Serve static files (index.html, payment.html, script.js) from repo root
+app.use(express.static(path.join(__dirname, '..')));
 
 // Initialize database file on startup
 initializeDB();
@@ -119,7 +123,7 @@ app.post(
 🏫 **نوعية التعليم:** ${nizamiText}
 🏫 **اسم الثانوية:** ${s.schoolName}
 
-💎 **الحالة:** مدف؈ع (2000 دج)
+💎 **الحالة:** مدفوع (2000 دج)
 📆 **الاشتراك حتى:** ${newExpiry}
 📁 **عاد التجديدات:** ${s.renewalCount}
                     `;
