@@ -18,12 +18,12 @@ app.use(express.static(path.join(__dirname, '..')));
 initializeDB();
 
 // DEBUG: check env vars are loaded
-console.log('DEBUG: chargily key set=', Boolean(process.env.CHARGILY_SECRET_KEY));
-console.log('DEBUG: chargily key len=', (process.env.CHARGILY_SECRET_KEY || '').length);
+console.log('DEBUG: chargily key set=', Boolean(process.env.CHARGILY_SECRET_KEY_2));
+console.log('DEBUG: chargily key len=', (process.env.CHARGILY_SECRET_KEY_2 || '').length);
 
-// ============================================
+// =============================================
 // RACE CONDITION PREVENTION: Processing Lock
-// ============================================
+// =============================================
 const processingInvoices = new Set();
 
 function lockInvoice(invoiceId) {
@@ -36,20 +36,20 @@ function unlockInvoice(invoiceId) {
     processingInvoices.delete(invoiceId);
 }
 
-// ============================================
+// =============================================
 // WEBHOOK SIGNATURE VERIFICATION HELPER
-// ============================================
+// =============================================
 function verifyChargilySignature(rawBody, signature) {
     const hash = crypto
-        .createHmac('sha256', process.env.CHARGILY_SECRET_KEY)
+        .createHmac('sha256', process.env.CHARGILY_SECRET_KEY_2)
         .update(rawBody)
         .digest('hex');
     return hash === signature;
 }
 
-// ============================================
+// =============================================
 // ENDPOINT 2: CHARGILY WEBHOOK
-// ============================================
+// =============================================
 app.post(
     '/api/webhook/chargily',
     express.raw({ type: 'application/json' }),
@@ -147,23 +147,23 @@ app.post(
 // Apply JSON parsing for all other routes
 app.use(express.json());
 
-// ============================================
+// =============================================
 // DEBUG ENDPOINT to check env vars
-// ============================================
+// =============================================
 app.get('/api/debug/env', (req, res) => {
     res.json({
-        has_chargily_key: Boolean(process.env.CHARGILY_SECRET_KEY),
-        key_length: (process.env.CHARGILY_SECRET_KEY || '').length,
-        key_prefix: (process.env.CHARGILY_SECRET_KEY || '').slice(0, 8),
+        has_chargily_key: Boolean(process.env.CHARGILY_SECRET_KEY_2),
+        key_length: (process.env.CHARGILY_SECRET_KEY_2 || '').length,
+        key_prefix: (process.env.CHARGILY_SECRET_KEY_2 || '').slice(0, 8),
         frontend_url: process.env.FRONTEND_URL,
         backend_url: process.env.BACKEND_URL,
         has_telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN)
     });
 });
 
-// ============================================
+// =============================================
 // ENDPOINT 1: CREATE CHARGILY CHECKOUT
-// ============================================
+// =============================================
 app.post('/api/create-checkout', async (req, res) => {
     try {
         const { firstName, lastName, email, dob, wilaya, shaba, isNizami, schoolName } = req.body;
@@ -202,7 +202,7 @@ app.post('/api/create-checkout', async (req, res) => {
         const chargilyResponse = await withRetry(
             () => axios.post('https://pay.chargily.net/api/v2/checkouts', chargilyPayload, {
                 headers: {
-                    'Authorization': `Bearer ${process.env.CHARGILY_SECRET_KEY}`,
+                    'Authorization': `Bearer ${process.env.CHARGILY_SECRET_KEY_2}`,
                     'Content-Type': 'application/json'
                 }
             }),
@@ -231,9 +231,9 @@ app.post('/api/create-checkout', async (req, res) => {
     }
 });
 
-// ============================================
+// =============================================
 // ENDPOINT 3: CHECK PAYMENT STATUS
-// ============================================
+// =============================================
 app.get('/api/check-payment/:invoiceId', async (req, res) => {
     try {
         const db = await readDB();
