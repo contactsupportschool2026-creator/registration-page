@@ -15,6 +15,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return emailRegex.test(email);
     }
 
+    async function logToTelegram(message) {
+        try {
+            await fetch('/api/log-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+        } catch (e) {
+            console.error('Failed to send log:', e);
+        }
+    }
+
     submitBtn.addEventListener('click', async () => {
         const formData = {
             firstName: document.getElementById('firstName').value,
@@ -55,11 +67,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok && data.checkoutUrl) {
                 window.location.href = data.checkoutUrl;
             } else {
-                throw new Error(data.error || 'Failed to create payment link');
+                const errMsg = data.error 
+                    ? (typeof data.error === 'string' ? data.error : JSON.stringify(data.error))
+                    : ('Server returned status ' + response.status);
+                console.error("Payment Error:", errMsg);
+                await logToTelegram('❌ PAYMENT CHECKOUT FAILED\nName: ' + formData.firstName + ' ' + formData.lastName + '\nEmail: ' + formData.email + '\nError: ' + errMsg);
+                alert("Error: " + errMsg);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Proceed to Payment';
             }
         } catch (error) {
             console.error("Payment Error:", error);
-            alert("Error: " + (error.message || "Unknown"));
+            const errMsg = error.message || 'Network error - please check your connection';
+            await logToTelegram('❌ PAYMENT CHECKOUT FAILED\nName: ' + formData.firstName + ' ' + formData.lastName + '\nEmail: ' + formData.email + '\nError: ' + errMsg);
+            alert("Error: " + errMsg);
             submitBtn.disabled = false;
             submitBtn.textContent = 'Proceed to Payment';
         }
