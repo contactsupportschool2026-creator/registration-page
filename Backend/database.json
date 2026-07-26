@@ -54,24 +54,6 @@
     "renewalCount": 0
   },
   {
-    "firstName": "CROSS",
-    "lastName": "ORIGIN",
-    "email": "cross@test.com",
-    "dob": "2000-01-01",
-    "wilaya": "16 - Alger",
-    "shaba": "Maths",
-    "isNizami": true,
-    "schoolName": "Test School",
-    "status": "pending",
-    "subscriptionStartDate": null,
-    "subscriptionEndDate": null,
-    "chatId": null,
-    "invoiceId": "01kyg2xcmxtv5xmrx9wbry3d0g",
-    "warnedTimestamp": null,
-    "linkSentTimestamp": null,
-    "renewalCount": 0
-  },
-  {
     "firstName": "Abderraouf",
     "lastName": "Ben Akki",
     "email": "abdraoufbenakki@gmail.com",
