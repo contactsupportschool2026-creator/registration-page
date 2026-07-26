@@ -18,7 +18,7 @@
 const fs   = require('fs');
 const path = require('path');
 
-const DB_PATH   = path.join(__dirname, 'database.json');
+const DB_PATH   = path.join(__dirname, 'data', 'database.json');
 const LOCK_PATH = DB_PATH + '.lock';
 const TMP_PATH  = DB_PATH + '.tmp';
 
@@ -110,6 +110,12 @@ function releaseLock() {
 // ─── Initialise ───────────────────────────────────────────────────────────────
 
 function initializeDB() {
+    // Ensure the data directory exists (for Railway volume mounts)
+    const dataDir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+        console.log('📁 Created data directory:', dataDir);
+    }
     if (!fs.existsSync(DB_PATH)) {
         console.log('📁 database.json not found. Creating new database...');
         fs.writeFileSync(DB_PATH, JSON.stringify([], null, 2));
@@ -163,13 +169,5 @@ async function withDB(fn) {
         const result = fn(db); // synchronous only — keeps lock duration minimal
 
         // Atomic write: write to .tmp first, then rename
-        fs.writeFileSync(TMP_PATH, JSON.stringify(db, null, 2));
+        fs.writeFileSync(TMP_PATH�y�BSON.stringify(db, null, 2));
         fs.renameSync(TMP_PATH, DB_PATH);
-
-        return result;
-    } finally {
-        releaseLock();
-    }
-}
-
-module.exports = { initializeDB, readDB, withDB };
