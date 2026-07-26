@@ -1,192 +1,171 @@
-// pdf.js — PDF generation utilities for the student bot
-// No external dependencies needed beyond pdfkit
+/**
+ * pdf.js — Generate a student database export PDF as an in-memory Buffer.
+ *
+ * Downloads Noto Sans Arabic from Google Fonts at first use (cached in-memory
+ * for the process lifetime), then embeds it into every PDF for full Unicode
+ * support.  No system fonts required — works on any Railway / container env.
+ *
+ * Usage:
+ *   const { generateStudentsPDF } = require('./pdf');
+ *   const buf = await generateStudentsPDF(students);
+ *   // buf is a Buffer — pass to bot.sendDocument()
+ */
 
-let pdfkit;
-try { pdfkit = require('pdfkit'); } catch (_) {
-    try { pdfkit = require('pdfkit-table'); } catch (__) { pdfkit = null; }
+const PDFDocument = require('pdfkit');
+const https       = require('https');
+const http        = require('http');
+
+// ── Font download with in-memory cache ────────────────────────────────────────
+
+let _fontCache = null;   // { regular: Buffer, bold: Buffer }  or null
+
+const FONT_URL_REGULAR = 'https://github.com/google/fonts/raw/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf';
+const FONT_URL_BOLD    = FONT_URL_REGULAR;  // pdfkit can fake-bold from the same font
+
+/** Download a URL and return a Buffer (follows redirects). */
+function downloadBuffer(url) {
+    return new Promise((resolve, reject) => {
+        const mod = url.startsWith('https') ? https : http;
+        mod.get(url, (res) => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                return downloadBuffer(res.headers.location).then(resolve, reject);
+            }
+            if (res.statusCode !== 200) {
+                return reject(new Error(`Font download failed: HTTP ${res.statusCode}`));
+            }
+            const chunks = [];
+            res.on('data', c => chunks.push(c));
+            res.on('end', () => resolve(Buffer.concat(chunks)));
+            res.on('error', reject);
+        }).on('error', reject);
+    });
 }
 
-/**
- * Generate a PDF for a SINGLE student
- * @param {Object} student — { firstName, lastName, invoiceId, status, ... }
- * @returns {Buffer}
- */
-async function generateStudentPDF(student) {
-    const PDFDocument = pdfkit;
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
-    const chunks = [];
+async function getFont() {
+    if (_fontCache) return _fontCache;
 
-    doc.on('data', chunk => chunks.push(chunk));
-    const done = new Promise(resolve => doc.on('end', resolve));
-
-    const name = `${student.firstName || ''} ${student.lastName || ''}`.trim();
-
-    // ── Header ──
-    doc.fontSize(22).font('Helvetica-Bold').text(name, { align: 'center' });
-    doc.moveDown(0.3);
-    doc.fontSize(12).font('Helvetica').fillColor('#666666').text(`Invoice: ${student.invoiceId}`, { align: 'center' });
-    doc.moveDown(0.5);
-
-    // ── Status badge ──
-    const statusColor = {
-        paid:    '#22c55e',
-        pending: '#f59e0b',
-        warned:  '#ef4444',
-        kicked:  '#6b7280',
-    };
-    doc.fontSize(14).font('Helvetica-Bold').fillColor(statusColor[student.status] || '#333')
-       .text(student.status ? student.status.toUpperCase() : 'N/A', { align: 'center' });
-    doc.moveDown(0.3);
-    doc.fillColor('#333');
-
-    // ── Separator ──
-    doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor('#e5e7eb').stroke();
-    doc.moveDown(0.5);
-
-    // ── Details table ──
-    const subEnd = student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : '—';
-    const scoreText = student.score != null ? `${student.score}/100` : '—';
-
-    const fields = [
-        ['First Name', student.firstName || '—'],
-        ['Last Name',  student.lastName || '—'],
-        ['Invoice ID', student.invoiceId || '—'],
-        ['Status',     student.status || '—'],
-        ['Score',      scoreText],
-        ['Expires',    subEnd],
-        ['Wilaya',     student.wilaya || '—'],
-        ['Specialty',  student.specialty || '—'],
-        ['School',     student.school || '—'],
-        ['Phone',      student.phone || '—'],
-        ['Telegram',   student.telegramUsername ? '@' + student.telegramUsername : '—'],
-        ['Email',      student.email || '—'],
-        ['Year',       student.year || '—'],
-    ];
-
-    const colX = [40, 180];
-    const rowH = 22;
-
-    fields.forEach(([label, value], i) => {
-        if (i % 2 === 0) {
-            doc.rect(colX[0], doc.y - 3, 515, rowH).fillColor('#f9fafb').fill();
-        }
-        doc.fillColor('#6b7280').font('Helvetica').fontSize(10)
-           .text(label, colX[0], doc.y + 4);
-        doc.fillColor('#111827').font('Helvetica-Bold').fontSize(11)
-           .text(String(value), colX[1], doc.y - 14, { width: 335 });
-        doc.moveDown(0.3);
-    });
-
-    // ── Footer ──
-    doc.moveDown(1);
-    doc.fontSize(9).fillColor('#9ca3af')
-       .text(`Generated: ${new Date().toISOString().split('T')[0]}`, { align: 'center' });
-
-    doc.end();
-    await done;
-    return Buffer.concat(chunks);
+    console.log('[pdf] Downloading Noto Sans Arabic font...');
+    const buf = await downloadBuffer(FONT_URL_REGULAR);
+    _fontCache = { regular: buf, bold: buf };
+    console.log(`[pdf] Font downloaded — ${buf.length} bytes`);
+    return _fontCache;
 }
 
-/**
- * Generate a PDF for ALL students (summary table)
- * @param {Array} db — array of student objects
- * @returns {Buffer}
- */
-async function generateStudentsPDF(db) {
-    const PDFDocument = pdfkit;
-    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
-    const chunks = [];
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-    doc.on('data', chunk => chunks.push(chunk));
-    const done = new Promise(resolve => doc.on('end', resolve));
+function safeText(value) {
+    if (value === null || value === undefined) return 'N/A';
+    return String(value);
+}
 
-    // ── Title ──
-    doc.fontSize(18).font('Helvetica-Bold').text('Student Database Export', { align: 'center' });
-    doc.fontSize(10).font('Helvetica').fillColor('#6b7280')
-       .text(`${db.length} student(s) — ${new Date().toISOString().split('T')[0]}`, { align: 'center' });
-    doc.moveDown(0.8);
+function formatDate(iso) {
+    if (!iso) return 'N/A';
+    return iso.split('T')[0];
+}
 
-    // ── Table header ──
-    const cols = [
-        { label: '#',    x: 30,  w: 25 },
-        { label: 'Name', x: 55,  w: 120 },
-        { label: 'Invoice', x: 175, w: 90 },
-        { label: 'Status',  x: 265, w: 55 },
-        { label: 'Score',   x: 320, w: 45 },
-        { label: 'Expires', x: 365, w: 70 },
-        { label: 'Wilaya',  x: 435, w: 70 },
-        { label: 'Specialty', x: 505, w: 100 },
-        { label: 'School', x: 605, w: 100 },
-        { label: 'Phone',  x: 705, w: 90 },
-    ];
-    const rowH = 20;
-    const headerY = doc.y;
+// ── Main export ───────────────────────────────────────────────────────────────
 
-    // Header background
-    doc.rect(30, headerY, 765, rowH).fillColor('#374151').fill();
-    cols.forEach(col => {
-        doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8)
-           .text(col.label, col.x + 2, headerY + 6, { width: col.w - 4, align: 'left' });
-    });
+async function generateStudentsPDF(students) {
+    const font = await getFont();
 
-    let y = headerY + rowH;
+    return new Promise((resolve, reject) => {
+        const doc    = new PDFDocument({ margin: 45, size: 'A4' });
+        const chunks = [];
 
-    // ── Rows ──
-    db.forEach((s, i) => {
-        const name = `${s.firstName || ''} ${s.lastName || ''}`.trim();
+        doc.on('data',  chunk => chunks.push(chunk));
+        doc.on('end',   ()    => resolve(Buffer.concat(chunks)));
+        doc.on('error', err   => reject(err));
 
-        // Page break if near bottom
-        if (y > 530) {
-            doc.addPage();
-            y = 30;
-            // Reprint header
-            doc.rect(30, y, 765, rowH).fillColor('#374151').fill();
-            cols.forEach(col => {
-                doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8)
-                   .text(col.label, col.x + 2, y + 6, { width: col.w - 4, align: 'left' });
-            });
-            y += rowH;
-        }
+        // Register and select the Arabic font
+        doc.registerFont('NotoSans', font.regular);
+        doc.registerFont('NotoSansBold', font.bold);
+        const FONT_REG = 'NotoSans';
+        const FONT_BLD = 'NotoSansBold';
 
-        // Row stripe
-        if (i % 2 === 0) {
-            doc.rect(30, y, 765, rowH).fillColor('#f9fafb').fill();
-        }
+        const MARGIN    = 45;
+        const PAGE_W    = doc.page.width  - MARGIN * 2;
+        const LABEL_W   = 115;
+        const VALUE_X   = MARGIN + LABEL_W + 8;
+        const VALUE_W   = PAGE_W - LABEL_W - 8;
 
-        const statusColors = { paid: '#22c55e', pending: '#f59e0b', warned: '#ef4444', kicked: '#6b7280' };
-        const rowData = [
-            String(i + 1),
-            name,
-            s.invoiceId || '—',
-            s.status || '—',
-            s.score != null ? `${s.score}/100` : '—',
-            s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : '—',
-            s.wilaya || '—',
-            s.specialty || '—',
-            s.school || '—',
-            s.phone || '—',
-        ];
+        const now        = new Date();
+        const exportDate = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
 
-        cols.forEach((col, ci) => {
-            const val = rowData[ci] || '—';
-            const isStatus = ci === 3;
-            doc.fillColor(isStatus ? (statusColors[s.status] || '#333') : '#111827')
-               .font(isStatus ? 'Helvetica-Bold' : 'Helvetica').fontSize(7)
-               .text(val, col.x + 2, y + 6, { width: col.w - 4, align: 'left' });
+        const bold    = () => doc.font(FONT_BLD);
+        const regular = () => doc.font(FONT_REG);
+
+        const rule = (color = '#cccccc', width = 0.5) => {
+            doc.moveTo(MARGIN, doc.y)
+               .lineTo(MARGIN + PAGE_W, doc.y)
+               .lineWidth(width)
+               .strokeColor(color)
+               .stroke()
+               .strokeColor('#000000');
+        };
+
+        const row = (label, value) => {
+            const y = doc.y;
+            bold().fontSize(9).fillColor('#555555')
+                  .text(label + ':', MARGIN, y, { width: LABEL_W, lineBreak: false });
+            regular().fontSize(9).fillColor('#111111')
+                     .text(safeText(value), VALUE_X, y, { width: VALUE_W });
+            doc.moveDown(0.15);
+        };
+
+        // ── Page header ──────────────────────────────────────────────────────
+        bold().fontSize(18).fillColor('#111111')
+              .text('Student Database Export', MARGIN, MARGIN, { align: 'center', width: PAGE_W });
+        doc.moveDown(0.4);
+
+        regular().fontSize(10).fillColor('#666666')
+                 .text(`Generated: ${exportDate}`, { align: 'center' });
+        doc.text(`Total students: ${students.length}`, { align: 'center' });
+        doc.fillColor('#111111').moveDown(0.8);
+
+        rule('#333333', 1.5);
+        doc.moveDown(0.8);
+
+        // ── Student blocks ───────────────────────────────────────────────────
+        students.forEach((s, i) => {
+            const renewals = s.renewalCount || 0;
+            const months   = renewals === 1 ? '1 month' : `${renewals} months`;
+            const nizami   = s.isNizami ? 'Nizami / نظامي' : 'Free / حر';
+
+            if (doc.y > doc.page.height - MARGIN - 180) {
+                doc.addPage();
+                doc.y = MARGIN;
+            }
+
+            bold().fontSize(12).fillColor('#000000')
+                  .text(`${i + 1}. ${safeText(s.firstName)} ${safeText(s.lastName)}`, MARGIN, doc.y);
+            doc.moveDown(0.35);
+
+            row('Invoice ID',    s.invoiceId);
+            row('Email',         s.email);
+            row('Date of Birth', s.dob);
+            row('Wilaya',        s.wilaya);
+            row('Specialty',     s.shaba);
+            row('School Type',   nizami);
+            row('School Name',   s.schoolName);
+            doc.moveDown(0.1);
+
+            row('Status',        s.status);
+            row('Months Paid',   months);
+            row('Sub. Start',    formatDate(s.subscriptionStartDate));
+            row('Sub. Expiry',   formatDate(s.subscriptionEndDate));
+            doc.moveDown(0.1);
+
+            row('Telegram ID',   s.chatId || 'Not linked');
+            doc.moveDown(0.5);
+
+            if (i < students.length - 1) {
+                rule('#cccccc', 0.5);
+                doc.moveDown(0.6);
+            }
         });
 
-        y += rowH;
+        doc.end();
     });
-
-    // ── Footer ──
-    if (y > 520) { doc.addPage(); y = 30; }
-    doc.moveDown(2);
-    doc.fontSize(9).fillColor('#9ca3af').font('Helvetica')
-       .text(`Generated: ${new Date().toISOString()} — ${db.length} students`, { align: 'center' });
-
-    doc.end();
-    await done;
-    return Buffer.concat(chunks);
 }
 
-module.exports = { generateStudentPDF, generateStudentsPDF };
+module.exports = { generateStudentsPDF };
