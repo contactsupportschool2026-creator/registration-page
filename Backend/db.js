@@ -169,5 +169,13 @@ async function withDB(fn) {
         const result = fn(db); // synchronous only â€” keeps lock duration minimal
 
         // Atomic write: write to .tmp first, then rename
-        fs.writeFileSync(TMP_PATHçžyçžBSON.stringify(db, null, 2));
+        fs.writeFileSync(TMP_PATH, JSON.stringify(db, null, 2));
         fs.renameSync(TMP_PATH, DB_PATH);
+
+        return result;
+    } finally {
+        releaseLock();
+    }
+}
+
+module.exports = { initializeDB, readDB, withDB };
