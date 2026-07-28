@@ -545,6 +545,8 @@ bot.on('callback_query', async (query) => {
             `❌ *Deletion Cancelled*\n\nNo changes were made.`,
             { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
         );
+        return;
+    }
 
     // ── Handle status button clicks ──
     if (data.startsWith('setstatus|')) {
@@ -576,8 +578,6 @@ bot.on('callback_query', async (query) => {
                 try { await bot.answerCallbackQuery(query.id, { text: '⚠️ Failed.' }); } catch (_) {}
             }
         }
-        return;
-    }
         return;
     }
 });
