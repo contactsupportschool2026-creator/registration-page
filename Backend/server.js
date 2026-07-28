@@ -138,7 +138,7 @@ app.post('/api/create-checkout', async (req, res) => {
 
         studentData.invoiceId = chargilyResponse.data.id;
         await withDB(db => db.push(studentData));
-        await telegramNotify('🆕 *New Registration*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
+        await telegramNotify('*New Registration*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
 
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
 
