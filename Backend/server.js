@@ -85,20 +85,19 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
             });
             if (snapshot) {
                 const s = snapshot;
-                const nizamiText = s.isNizami ? 'نظامٍ' : 'حف';
+                const nizamiText = s.isNizami ? '\u0646\u0638\u0627\u0645\u064A' : '\u062D\u0631';
                 const newExpiry = s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : 'N/A';
-                const msg = '🟢 *ُمُى اواماى نالماى!*\n\n' +
-                    '🥭 **الإكٍ:** ' + s.firstName + ' ' + s.lastName + '\n' +
-                    '📧 **البكيام**
- ' + s.email + '\n' +
-                    '📅 **بواريب الامصلواد:** ' + s.dob + '\n' +
-                    '🏙️ **الاولاياة:** ' + s.wilaya + '\n' +
-                    '📚 **الاشقوة:** ' + s.shaba + '\n' +
-                    '🏫 **نوكية الاتكلوم:** ' + nizamiText + '\n' +
-                    '🏫 **اسم الرانوية:** ' + s.schoolName + '\n\n' +
-                    '👎 **الحالة:** مُفوف (2000 ُق)\n' +
-                    '📆 **الاستراأ حتف:** ' + newExpiry + '\n' +
-                    '💁 **فول التٌامدًاة:** ' + s.renewalCount;
+                const msg = '\uD83D\uDFE2 *\u062F\u0641\u0639\u0629 \u062C\u062F\u064A\u062F\u0629 \u0646\u0627\u062C\u062D\u0629!*\n\n' +
+                    '\uD83E\uDD50 **\u0627\u0644\u0625\u0633\u0645:** ' + s.firstName + ' ' + s.lastName + '\n' +
+                    '\uD83D\uDCE7 **\u0627\u0644\u0628\u0631\u064A\u062F:** ' + s.email + '\n' +
+                    '\uD83D\uDCC5 **\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0645\u064A\u0644\u0627\u062F:** ' + s.dob + '\n' +
+                    '\uD83C\uDFD9\uFE0F **\u0627\u0644\u0648\u0644\u0627\u064A\u0629:** ' + s.wilaya + '\n' +
+                    '\uD83D\uDCDA **\u0627\u0644\u0634\u0639\u0628\u0629:** ' + s.shaba + '\n' +
+                    '\uD83C\uDFEB **\u0646\u0648\u0639\u064A\u0629 \u0627\u0644\u062A\u0639\u0644\u064A\u0645:** ' + nizamiText + '\n' +
+                    '\uD83C\uDFEB **\u0627\u0633\u0645 \u0627\u0644\u062B\u0627\u0646\u0648\u064A\u0629:** ' + s.schoolName + '\n\n' +
+                    '\uD83D\uDC8E **\u0627\u0644\u062D\u0627\u0644\u0629:** \u0645\u062F\u0641\u0648\u0639 (2000 \u062F\u062C)\n' +
+                    '\uD83D\uDCC6 **\u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643 \u062D\u062A\u0649:** ' + newExpiry + '\n' +
+                    '\uD83D\uDCC1 **\u0639\u0627\u062F \u0627\u0644\u062A\u062C\u062F\u064A\u062F\u0627\u062A:** ' + s.renewalCount;
                 const sup = '\n\n_For any issues, contact: @' + process.env.TELEGRAM_SUPPORT_USERNAME + '_';
                 await telegramNotify(msg + sup);
                 console.log('Payment confirmed:', s.firstName, s.lastName);
@@ -139,7 +138,7 @@ app.post('/api/create-checkout', async (req, res) => {
 
         studentData.invoiceId = chargilyResponse.data.id;
         await withDB(db => db.push(studentData));
-        await telegramNotify('🎹 *New Registration*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
+        await telegramNotify('🆕 *New Registration*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
 
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
 
@@ -154,7 +153,7 @@ app.post('/api/create-checkout', async (req, res) => {
                 else errorMsg = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
             }
         }
-        await telegramNotify('✌ *CHECKOUT FAILED*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nError: ' + errorMsg + '\nStatus: ' + errorStatus);
+        await telegramNotify('❌ *CHECKOUT FAILED*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nError: ' + errorMsg + '\nStatus: ' + errorStatus);
         res.status(errorStatus).json({ error: errorMsg });
     }
 });
