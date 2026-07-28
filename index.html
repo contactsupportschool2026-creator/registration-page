@@ -111,7 +111,7 @@
 
         <div class="input-group">
             <div class="label-row"><span>High School Name</span></div>
-            <input type="text" id="schoolName" placeholder="e.g. Lycée Mohamed Boudiaf" required>
+            <input type="text" id="schoolName" placeholder="e.g. Lycée Mohamed Boudiaf">
         </div>
 
         <p class="price-tag">إشتراك الشهري : 2000 DA</p>
@@ -120,5 +120,20 @@
     </div>
 
     <script src="script.js"></script>
+    <script>
+        const nizamiToggle = document.getElementById('nizami');
+        const schoolNameInput = document.getElementById('schoolName');
+
+        nizamiToggle.addEventListener('change', function() {
+            if (this.checked) {
+                schoolNameInput.disabled = true;
+                schoolNameInput.value = '';
+                schoolNameInput.placeholder = 'N/A (نظامي)';
+            } else {
+                schoolNameInput.disabled = false;
+                schoolNameInput.placeholder = 'e.g. Lycée Mohamed Boudiaf';
+            }
+        });
+    </script>
 </body>
 </html>
