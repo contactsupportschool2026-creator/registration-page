@@ -202,64 +202,6 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
 });
 
 // ==========================================
-// ADMIN COMMAND 1: /getall - Show All Students
-// ==========================================
-bot.onText(/\/getall/, async (msg) => {
-    const chatId = msg.chat.id;
-    if (!isAuthorized(chatId)) return;
-
-    try {
-        let db;
-        try {
-            db = await readDB();
-        } catch (readErr) {
-            console.error('❌ [/getall] Failed to read DB:', readErr.message);
-            return safeSend(chatId, '⚠️ *Database read failed.* Please try again.', { parse_mode: 'Markdown' });
-        }
-
-        // Double-check: ensure db is actually an array
-        if (!Array.isArray(db) || db.length === 0) {
-            return safeSend(chatId, '📭 *No students found in the database.*', { parse_mode: 'Markdown' });
-        }
-
-        let lines = [];
-        lines.push(`📊 *Total Students: ${db.length}*\n`);
-
-        db.forEach((student, index) => {
-            lines.push(`*${index + 1}. ${student.firstName} ${student.lastName}*`);
-            lines.push(`   Invoice: \`${student.invoiceId}\``);
-            lines.push(`   Status: ${student.status}`);
-            lines.push(`   Renewals: ${student.renewalCount || 0}`);
-            lines.push(`   Telegram: ${student.chatId || 'Not linked'}`);
-            lines.push(`   Expires: ${student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : 'N/A'}`);
-            lines.push(`   Score: ${student.score != null ? student.score + '/100' : 'N/A'}`);
-            lines.push(''); // blank line between students
-        });
-
-        // Build chunks safely — never break mid-line (prevents broken Markdown)
-        let currentChunk = '';
-        for (const line of lines) {
-            const maybeChunk = currentChunk + line + '\n';
-            if (maybeChunk.length > 4000) {
-                await safeSend(chatId, currentChunk, { parse_mode: 'Markdown' });
-                currentChunk = line + '\n';
-            } else {
-                currentChunk = maybeChunk;
-            }
-        }
-        // Send the last chunk
-        if (currentChunk.trim()) {
-            await safeSend(chatId, currentChunk, { parse_mode: 'Markdown' });
-        }
-    } catch (error) {
-        console.error('❌ [/getall] Error:', error.message);
-        await safeSend(chatId, `⚠️ Failed to retrieve student list: ${error.message}`, { parse_mode: 'Markdown' });
-    }
-});
-
-
-
-// ==========================================
 // PENDING SEARCH STORE: users who typed /search and are awaiting their query
 // ==========================================
 const pendingSearches = new Set(); // chat IDs awaiting a search query
