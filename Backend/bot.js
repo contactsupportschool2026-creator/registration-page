@@ -560,6 +560,19 @@ bot.on('callback_query', async (query) => {
                     if (student) {
                         updated = { name: `${student.firstName} ${student.lastName}`, old: student.status };
                         student.status = newStatus;
+
+                        // If setting to paid, set/refresh the 30-day subscription period
+                        if (newStatus === 'paid') {
+                            const now = new Date();
+                            // Always reset start date to now when manually setting to paid
+                            student.subscriptionStartDate = now.toISOString();
+                            const exp = new Date(now);
+                            exp.setDate(exp.getDate() + 30);
+                            student.subscriptionEndDate = exp.toISOString();
+                            // Clear warning/kick flags
+                            student.warnedTimestamp = null;
+                            student.linkSentTimestamp = null;
+                        }
                     }
                 });
 
@@ -567,11 +580,17 @@ bot.on('callback_query', async (query) => {
                     await bot.answerCallbackQuery(query.id, { text: '❌ Student not found.' });
                     return;
                 }
-
-                await bot.answerCallbackQuery(query.id, { text: '✅ Status updated!' });
+ let extra = '';
+                if (newStatus === 'paid') {
+                    const db2 = await readDB();
+                    const s = db2.find(x => x.invoiceId === invoiceId);
+                    if (s && s.subscriptionEndDate) {
+                        extra = `\n*Expires:* ${s.subscriptionEndDate.split('T')[0]} (+30 days)`;
+                    }
+                }
                 await bot.editMessageText(
-                    `✅ *Status Updated*\n\n*Student:* ${updated.name}\n*Invoice:* \`${invoiceId}\`\n*From:* ${updated.old}\n*To:* ${newStatus}`,
-                    { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
+                    `✅ *Status Updated*\n\n*Student:* ${updated.name}\n*Invoice:* \`${invoiceId}\`\n*From:* ${updated.old}\n*To:* ${newStatus}${extra}`,
+                { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
                 );
             } catch (err) {
                 console.error('❌ [/updatestatus callback] Error:', err.message);
