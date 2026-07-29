@@ -580,7 +580,7 @@ bot.on('callback_query', async (query) => {
                     await bot.answerCallbackQuery(query.id, { text: '❌ Student not found.' });
                     return;
                 }
- let extra = '';
+                let extra = '';
                 if (newStatus === 'paid') {
                     const db2 = await readDB();
                     const s = db2.find(x => x.invoiceId === invoiceId);
