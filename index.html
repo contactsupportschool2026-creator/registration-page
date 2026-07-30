@@ -125,10 +125,10 @@
         const schoolNameInput = document.getElementById('schoolName');
 
         nizamiToggle.addEventListener('change', function() {
-            if (this.checked) {
+            if (!this.checked) {
                 schoolNameInput.disabled = true;
                 schoolNameInput.value = '';
-                schoolNameInput.placeholder = 'N/A (نظامي)';
+                schoolNameInput.placeholder = 'N/A (حر)';
             } else {
                 schoolNameInput.disabled = false;
                 schoolNameInput.placeholder = 'e.g. Lycée Mohamed Boudiaf';
