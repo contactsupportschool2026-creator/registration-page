@@ -101,7 +101,7 @@
 
         <div class="input-group">
             <div class="toggle-container">
-                <span>School Type: <span class="label-ar">نظامي أو حُر</span></span>
+                <span>School Type: <span class="label-ar"><span id="nidamiLabel">نظامي</span> أو <span id="hurrLabel">حر</span></span></span>
                 <label class="toggle-switch">
                     <input type="checkbox" id="nizami">
                     <span class="slider"></span>
@@ -123,15 +123,34 @@
     <script>
         const nizamiToggle = document.getElementById('nizami');
         const schoolNameInput = document.getElementById('schoolName');
+        const nidamiLabel = document.getElementById('nidamiLabel');
+        const hurrLabel = document.getElementById('hurrLabel');
+
+        // Set initial state: toggle OFF = حر (disabled school name)
+        if (!nizamiToggle.checked) {
+            schoolNameInput.disabled = true;
+            schoolNameInput.value = '';
+            schoolNameInput.placeholder = 'N/A (حر)';
+            hurrLabel.style.fontWeight = '700';
+            hurrLabel.style.color = '#000';
+        }
 
         nizamiToggle.addEventListener('change', function() {
             if (!this.checked) {
                 schoolNameInput.disabled = true;
                 schoolNameInput.value = '';
                 schoolNameInput.placeholder = 'N/A (حر)';
+                hurrLabel.style.fontWeight = '700';
+                hurrLabel.style.color = '#000';
+                nidamiLabel.style.fontWeight = '400';
+                nidamiLabel.style.color = '#888';
             } else {
                 schoolNameInput.disabled = false;
                 schoolNameInput.placeholder = 'e.g. Lycée Mohamed Boudiaf';
+                nidamiLabel.style.fontWeight = '700';
+                nidamiLabel.style.color = '#000';
+                hurrLabel.style.fontWeight = '400';
+                hurrLabel.style.color = '#888';
             }
         });
     </script>
