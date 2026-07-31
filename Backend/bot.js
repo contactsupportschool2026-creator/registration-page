@@ -118,12 +118,6 @@ bot.on('message', async (msg) => {
         return handleExtendQuery(chatId, text);
     }
 
-    // ── If user has an active export-one prompt ──
-    if (pendingExportQueries.has(chatId)) {
-        pendingExportQueries.delete(chatId);
-        return handleExportQuery(chatId, text);
-    }
-
     // ── If user has an active delete prompt ──
     if (pendingDeleteQueries.has(chatId)) {
         pendingDeleteQueries.delete(chatId);
@@ -490,16 +484,6 @@ bot.on('callback_query', async (query) => {
             console.error('❌ [/exportpdf all] Error:', err.message);
             try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
         }
-        return;
-    }
-
-    if (data === 'exportone') {
-        await bot.answerCallbackQuery(query.id);
-        pendingExportQueries.add(chatId.toString());
-        await bot.editMessageText(
-            '🔍 *Export One Student*\n\nType the student\'s name or invoice ID.',
-            { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
-        );
         return;
     }
 
