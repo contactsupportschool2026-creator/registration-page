@@ -120,10 +120,9 @@ async function generateStudentsPDF(students) {
 
         const totalW = cols.reduce((s, c) => s + c.w, 0);
         // Scale if needed
-        if (totalW < PAGE_W) {
-            const scale = PAGE_W / totalW;
-            cols.forEach(c => c.w = Math.floor(c.w * scale));
-        }
+        // Always scale to fit the page exactly
+        const scale = PAGE_W / totalW;
+        cols.forEach(c => c.w = Math.floor(c.w * scale));
 
         // Helper: draw header row
         const drawHeader = () => {
