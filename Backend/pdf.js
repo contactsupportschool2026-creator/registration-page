@@ -69,7 +69,7 @@ async function generateStudentsPDF(students) {
     const font = await getFont();
 
     return new Promise((resolve, reject) => {
-        const doc    = new PDFDocument({ margin: 45, size: 'A4' });
+        const doc    = new PDFDocument({ margin: 20, size: 'A4', layout: 'landscape' });
         const chunks = [];
 
         doc.on('data',  chunk => chunks.push(chunk));
@@ -82,86 +82,129 @@ async function generateStudentsPDF(students) {
         const FONT_REG = 'NotoSans';
         const FONT_BLD = 'NotoSansBold';
 
-        const MARGIN    = 45;
+        const MARGIN    = 20;
         const PAGE_W    = doc.page.width  - MARGIN * 2;
-        const LABEL_W   = 115;
-        const VALUE_X   = MARGIN + LABEL_W + 8;
-        const VALUE_W   = PAGE_W - LABEL_W - 8;
+        const bold      = () => doc.font(FONT_BLD);
+        const regular   = () => doc.font(FONT_REG);
 
         const now        = new Date();
         const exportDate = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
 
-        const bold    = () => doc.font(FONT_BLD);
-        const regular = () => doc.font(FONT_REG);
-
-        const rule = (color = '#cccccc', width = 0.5) => {
-            doc.moveTo(MARGIN, doc.y)
-               .lineTo(MARGIN + PAGE_W, doc.y)
-               .lineWidth(width)
-               .strokeColor(color)
-               .stroke()
-               .strokeColor('#000000');
-        };
-
-        const row = (label, value) => {
-            const y = doc.y;
-            bold().fontSize(9).fillColor('#555555')
-                  .text(label + ':', MARGIN, y, { width: LABEL_W, lineBreak: false });
-            regular().fontSize(9).fillColor('#111111')
-                     .text(safeText(value), VALUE_X, y, { width: VALUE_W });
-            doc.moveDown(0.15);
-        };
-
-        // ── Page header ──────────────────────────────────────────────────────
-        bold().fontSize(18).fillColor('#111111')
+        // ── Page header ──
+        bold().fontSize(16).fillColor('#111')
               .text('Student Database Export', MARGIN, MARGIN, { align: 'center', width: PAGE_W });
-        doc.moveDown(0.4);
-
-        regular().fontSize(10).fillColor('#666666')
+        doc.moveDown(0.3);
+        regular().fontSize(9).fillColor('#666')
                  .text(`Generated: ${exportDate}`, { align: 'center' });
-        doc.text(`Total students: ${students.length}`, { align: 'center' });
-        doc.fillColor('#111111').moveDown(0.8);
+        regular().text(`Total students: ${students.length}`, { align: 'center' });
+        doc.fillColor('#111');
+        doc.moveDown(1.2);
 
-        rule('#333333', 1.5);
-        doc.moveDown(0.8);
+        // ── Column layout ──
+        const cols = [
+            { label: '#',        w: 24  },
+            { label: 'Name',     w: 120 },
+            { label: 'Invoice',  w: 100 },
+            { label: 'Email',    w: 140 },
+            { label: 'DOB',      w: 65  },
+            { label: 'Wilaya',   w: 45  },
+            { label: 'Specialty',w: 90  },
+            { label: 'Sch. Type',w: 65  },
+            { label: 'School',   w: 100 },
+            { label: 'Status',   w: 55  },
+            { label: 'Renewals', w: 55  },
+            { label: 'Start',    w: 65  },
+            { label: 'Expiry',   w: 65  },
+            { label: 'Score',    w: 45  },
+        ];
 
-        // ── Student blocks ───────────────────────────────────────────────────
+        const totalW = cols.reduce((s, c) => s + c.w, 0);
+        // Scale if needed
+        if (totalW < PAGE_W) {
+            const scale = PAGE_W / totalW;
+            cols.forEach(c => c.w = Math.floor(c.w * scale));
+        }
+
+        // Helper: draw header row
+        const drawHeader = () => {
+            const y = doc.y;
+            let x = MARGIN;
+            doc.rect(x, y, PAGE_W, 18).fill('#ddd');
+            bold().fontSize(7.5).fillColor('#111');
+            cols.forEach(col => {
+                doc.text(col.label, x + 2, y + 3, { width: col.w - 4, align: 'center' });
+                x += col.w;
+            });
+            doc.moveTo(MARGIN, y + 18).lineTo(MARGIN + PAGE_W, y + 18).lineWidth(1).strokeColor('#333').stroke().strokeColor('#000');
+            doc.y = y + 20;
+        };
+
+        // Helper: draw one data row
+        const drawRow = (data, rowNum) => {
+            const rowH = 14;
+            const y = doc.y;
+
+            // Alternate row background
+            if (rowNum % 2 === 0) {
+                doc.rect(MARGIN, y, PAGE_W, rowH).fill('#f8f8f8');
+            }
+
+            let x = MARGIN;
+            bold().fontSize(7).fillColor('#111');
+            cols.forEach((col, ci) => {
+                const text = safeText(data[ci]);
+                // Truncate text to fit width
+                let display = String(text);
+                if (display.length > Math.floor(col.w / 5)) {
+                    display = display.substring(0, Math.floor(col.w / 5) - 2) + '..';
+                }
+                doc.text(display, x + 2, y + 2, { width: col.w - 4, align: 'center' });
+                x += col.w;
+            });
+
+            // Grid lines
+            x = MARGIN;
+            doc.lineWidth(0.3).strokeColor('#ccc');
+            cols.forEach(col => {
+                doc.moveTo(x, y).lineTo(x, y + rowH).stroke();
+                x += col.w;
+            });
+            doc.moveTo(x, y).lineTo(x, y + rowH).stroke();
+            doc.moveTo(MARGIN, y + rowH).lineTo(MARGIN + PAGE_W, y + rowH).stroke();
+            doc.strokeColor('#000');
+
+            doc.y = y + rowH;
+        };
+
+        // ── Draw table ──
+        drawHeader();
+
         students.forEach((s, i) => {
-            const renewals = s.renewalCount || 0;
-            const months   = renewals === 1 ? '1 month' : `${renewals} months`;
-            const nizami   = s.isNizami ? 'Nizami / نظامي' : 'Free / حر';
-
-            if (doc.y > doc.page.height - MARGIN - 180) {
+            // Page break if near bottom
+            if (doc.y > doc.page.height - MARGIN - 40) {
                 doc.addPage();
-                doc.y = MARGIN;
+                drawHeader();
             }
 
-            bold().fontSize(12).fillColor('#000000')
-                  .text(`${i + 1}. ${safeText(s.firstName)} ${safeText(s.lastName)}`, MARGIN, doc.y);
-            doc.moveDown(0.35);
+            const nizamiText = s.isNizami ? 'Nizami / نظامي' : 'Free / حر';
+            const renewals   = (s.renewalCount || 0);
 
-            row('Invoice ID',    s.invoiceId);
-            row('Email',         s.email);
-            row('Date of Birth', s.dob);
-            row('Wilaya',        s.wilaya);
-            row('Specialty',     s.shaba);
-            row('School Type',   nizami);
-            row('School Name',   s.schoolName);
-            doc.moveDown(0.1);
-
-            row('Status',        s.status);
-            row('Months Paid',   months);
-            row('Sub. Start',    formatDate(s.subscriptionStartDate));
-            row('Sub. Expiry',   formatDate(s.subscriptionEndDate));
-            doc.moveDown(0.1);
-
-            row('Telegram ID',   s.chatId || 'Not linked');
-            doc.moveDown(0.5);
-
-            if (i < students.length - 1) {
-                rule('#cccccc', 0.5);
-                doc.moveDown(0.6);
-            }
+            drawRow([
+                i + 1,                                                // #
+                `${safeText(s.firstName)} ${safeText(s.lastName)}`,   // Name
+                s.invoiceId || 'N/A',                                 // Invoice
+                s.email || 'N/A',                                     // Email
+                s.dob || 'N/A',                                       // DOB
+                s.wilaya || 'N/A',                                    // Wilaya
+                s.shaba || 'N/A',                                     // Specialty
+                nizamiText,                                           // School Type
+                s.schoolName || 'N/A',                                // School
+                s.status || 'N/A',                                    // Status
+                renewals,                                             // Renewals
+                formatDate(s.subscriptionStartDate),                  // Start
+                formatDate(s.subscriptionEndDate),                    // Expiry
+                s.score != null ? `${s.score}/100` : 'N/A',          // Score
+            ], i);
         });
 
         doc.end();
