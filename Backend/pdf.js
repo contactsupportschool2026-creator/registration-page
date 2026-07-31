@@ -129,7 +129,7 @@ async function generateStudentsPDF(students) {
             const y = doc.y;
             let x = MARGIN;
             doc.rect(x, y, PAGE_W, 18).fill('#ddd');
-            bold().fontSize(7.5).fillColor('#111');
+            bold().fontSize(6.5).fillColor('#111');
             cols.forEach(col => {
                 doc.text(col.label, x + 2, y + 3, { width: col.w - 4, align: 'center' });
                 x += col.w;
@@ -140,7 +140,7 @@ async function generateStudentsPDF(students) {
 
         // Helper: draw one data row
         const drawRow = (data, rowNum) => {
-            const rowH = 14;
+            const rowH = 12;
             const y = doc.y;
 
             // Alternate row background
@@ -149,7 +149,7 @@ async function generateStudentsPDF(students) {
             }
 
             let x = MARGIN;
-            bold().fontSize(7).fillColor('#111');
+            bold().fontSize(6.5).fillColor('#111');
             cols.forEach((col, ci) => {
                 const text = safeText(data[ci]);
                 // Truncate text to fit width
