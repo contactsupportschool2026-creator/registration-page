@@ -10,7 +10,13 @@ const bot          = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: 
 const SUPPORT_TEXT = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
 
 // Ensure the database file exists before the bot starts handling messages
-initializeDB();
+// Ensure the database file exists before the bot starts handling messages
+try {
+    initializeDB();
+} catch (err) {
+    console.error('❌ FATAL: Failed to initialize database:', err.message);
+    process.exit(1);
+}
 
 // ==========================================
 // HELPER: Check if user is admin (chat ID match only — no session check)
@@ -65,7 +71,7 @@ async function createRenewalLink(student) {
         currency:    'dzd',
         description: `Renouvellement: ${student.firstName} ${student.lastName}`,
         client_name: `${student.firstName} ${student.lastName}`,
-        client_email:'student@example.com',
+        client_email: student.email || 'student@example.com',
         back_url:    `${process.env.FRONTEND_URL}/payment.html`,
         webhook_url: `${process.env.BACKEND_URL}/api/webhook/chargily`
     };
@@ -134,6 +140,11 @@ bot.on('message', async (msg) => {
     if (pendingSearches.has(chatId)) {
         pendingSearches.delete(chatId);
         return handleSearchQuery(chatId, text);
+    }
+        // ── If user has an active export prompt ──
+    if (pendingExportQueries.has(chatId)) {
+        pendingExportQueries.delete(chatId);
+        return handleExportQuery(chatId, text);
     }
 
     // ── Already verified this session → let command handlers run ────────────
@@ -588,8 +599,29 @@ bot.on('callback_query', async (query) => {
 // ── Handle export-one search (intercepted by message gate) ──
 async function handleExportQuery(chatId, text) {
     try {
-        
-        // One match — generate the PDF now
+        const db = await readDB();
+        const q = text.toLowerCase();
+        const results = db.filter(s => {
+            const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+            return fullName.includes(q) ||
+                   (s.firstName && s.firstName.toLowerCase().includes(q)) ||
+                   (s.lastName && s.lastName.toLowerCase().includes(q)) ||
+                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
+        });
+
+        if (results.length === 0) {
+            return safeSend(chatId, `🔍 No students found matching "*${text}*". Try again.`, { parse_mode: 'Markdown' });
+        }
+
+        if (results.length > 1) {
+            let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
+            results.forEach((s, i) => {
+                msg += `*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\`\n`;
+            });
+            msg += `\nType a more specific name.`;
+            return safeSend(chatId, msg, { parse_mode: 'Markdown' });
+        }
+
         const student = results[0];
         await safeSend(chatId, `⏳ Generating PDF for *${student.firstName} ${student.lastName}*…`, { parse_mode: 'Markdown' });
 
@@ -602,11 +634,14 @@ async function handleExportQuery(chatId, text) {
         console.error('❌ [/exportpdf one] Error:', err.message);
         await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
     }
-}
-
+    }
 // ==========================================
 // PENDING EXPORT STORE
 // ==========================================
+// ==========================================
+// PENDING EXPORT STORE
+// ==========================================
+const pendingExportQueries = new Set(); // chat IDs awaiting a student name for export
 
 // ==========================================
 // PENDING SCORE STORE: /setscore flow
@@ -614,7 +649,7 @@ async function handleExportQuery(chatId, text) {
 const pendingScoreQueries = new Map(); // chatId -> { step: 'find'|'score', student }
 
 const pendingExtendQueries = new Map(); // chatId -> { step: 'find'|'days', student }
- // chat IDs awaiting a student name for export
+// chat IDs awaiting a student name for export
 
 // ==========================================
 // ADMIN COMMAND: /exportpdf — Export student(s) to PDF
@@ -764,7 +799,7 @@ bot.onText(/\/help/, async (msg) => {
 *📋 View & Export*
 \`/getall\` — List all students with status
 \`/search\` — Search by name, invoice ID, wilaya, specialty, school, or status
-`\`/exportpdf\` — Export all students to PDF (table format)
+\`\`/exportpdf\` — Export all students to PDF (table format)
 
 *✏️ Manage Students*
 \`/updatestatus\` — Change a student's status (paid/pending/warned/kicked)
@@ -777,7 +812,7 @@ bot.onText(/\/help/, async (msg) => {
 \`/search\` → type the student's name or invoice ID
 \`/updatestatus\` → type the name → click the new status button
 \`/delete\` → type the name → click *Delete* or *Cancel*
-`\`/exportpdf\` → click *Export ALL* to download the table
+\`\`/exportpdf\` → click *Export ALL* to download the table
 
 📌 *Classic commands:*
 \`/sendlink inv_12345\`
