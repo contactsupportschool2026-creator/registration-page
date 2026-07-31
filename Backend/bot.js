@@ -588,34 +588,8 @@ bot.on('callback_query', async (query) => {
 // ── Handle export-one search (intercepted by message gate) ──
 async function handleExportQuery(chatId, text) {
     try {
-        const db = await readDB();
-        const q = text.toLowerCase();
-        const results = db.filter(s => {
-            const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
-            return fullName.includes(q) ||
-                   (s.firstName && s.firstName.toLowerCase().includes(q)) ||
-                   (s.lastName && s.lastName.toLowerCase().includes(q)) ||
-                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
-        });
-
-        if (results.length === 0) {
-            pendingExportQueries.add(chatId.toString());
-            return safeSend(chatId, `🔍 No students found matching "*${text}*". Try again.`, { parse_mode: 'Markdown' });
-        }
-
-        if (results.length > 1) {
-            let msg = `🔍 *${results.length} students found for "${text}":*
-
-`;
-            results.forEach((s, i) => {
-                msg += `*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\` — ${s.status}
-`;
-            });
-            msg += `
-Type a more specific name.`;
-            pendingExportQueries.add(chatId.toString());
-            return safeSend(chatId, msg, { parse_mode: 'Markdown' });
-        }
+        
+    }
 
         // One match — generate the PDF now
         const student = results[0];
@@ -641,14 +615,13 @@ Type a more specific name.`;
 // ==========================================
 const pendingScoreQueries = new Map(); // chatId -> { step: 'find'|'score', student }
 
-const pendingExportQueries = new Set();
 const pendingExtendQueries = new Map(); // chatId -> { step: 'find'|'days', student }
  // chat IDs awaiting a student name for export
 
 // ==========================================
 // ADMIN COMMAND: /exportpdf — Export student(s) to PDF
 // ==========================================
-// /exportpdf → shows inline buttons: [Export All] [Export One Student]
+// /exportpdf → shows inline buttons: [Export All] 
 bot.onText(/^\/exportpdf$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
@@ -660,7 +633,6 @@ bot.onText(/^\/exportpdf$/, async (msg) => {
         reply_markup: {
             inline_keyboard: [
                 [ { text: `📦 Export ALL (${count} students)`, callback_data: 'exportall' } ],
-                [ { text: '🔍 Export ONE student', callback_data: 'exportone' } ],
             ]
         }
     };
@@ -669,10 +641,7 @@ bot.onText(/^\/exportpdf$/, async (msg) => {
         chatId,
         `📄 *Export PDF*
 
-Choose what to export:
-
-• *All students* — full database table
-• *One student* — detailed info card
+Click below to export the full database as a table.
 
 Database has *${count}* student(s).`,
         { parse_mode: 'Markdown', ...buttons }
@@ -797,7 +766,7 @@ bot.onText(/\/help/, async (msg) => {
 *📋 View & Export*
 \`/getall\` — List all students with status
 \`/search\` — Search by name, invoice ID, wilaya, specialty, school, or status
-\`/exportpdf\` — Export student(s) to PDF (all students or a single student)
+`\`/exportpdf\` — Export all students to PDF (table format)
 
 *✏️ Manage Students*
 \`/updatestatus\` — Change a student's status (paid/pending/warned/kicked)
@@ -810,7 +779,7 @@ bot.onText(/\/help/, async (msg) => {
 \`/search\` → type the student's name or invoice ID
 \`/updatestatus\` → type the name → click the new status button
 \`/delete\` → type the name → click *Delete* or *Cancel*
-\`/exportpdf\` → choose *Export ALL* or *Export ONE* → search by name
+`\`/exportpdf\` → click *Export ALL* to download the table
 
 📌 *Classic commands:*
 \`/sendlink inv_12345\`
