@@ -187,13 +187,15 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     try {
         let studentName = null;
 
-        await withDB(db => {
-            const student = db.find(s => s.invoiceId === invoiceId);
-            if (student) {
-                student.chatId = chatId.toString(); // always store as string
-                studentName    = student.firstName;
-            }
-        });
+    await withDB(db => {
+        const student = db.find(s => s.invoiceId === invoiceId);
+        if (student) {
+            student.chatId = chatId.toString(); // always store as string
+            // NEW: Auto-extract and save the student's Telegram @username
+            student.username = msg.from.username ? `@${msg.from.username}` : null; 
+            studentName    = student.firstName;
+        }
+    });
 
         if (studentName) {
             await safeSend(chatId, `✅ Welcome ${studentName}! Your Telegram account is now linked to our system.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
