@@ -789,6 +789,67 @@ async function handleScoreQuery(chatId, text) {
 }
 
 // ==========================================
+// ADMIN COMMAND: /addquiz - Record a quiz score from a replied message
+// ==========================================
+// Usage: Reply directly to the forwarded quiz message with /addquiz
+bot.onText(/^\/addquiz$/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) return;
+
+    if (!msg.reply_to_message) {
+        return safeSend(chatId, '❌ *Usage:* Reply to the quiz result message and type `/addquiz`.', { parse_mode: 'Markdown' });
+    }
+
+    const originalText = msg.reply_to_message.text || '';
+    
+    // We expect the message format to be: Quiz: <Name> | Username: <@username> | Score: <Number>
+    const match = originalText.match(/Quiz:\s*(.+?)\s*\|\s*Username:\s*(@?\w+)\s*\|\s*Score:\s*([\d.]+)/i);
+    
+    if (!match) {
+        return safeSend(chatId, '❌ Could not parse the message. Ensure the format is:\n`Quiz: <Name> | Username: <@username> | Score: <Score>`', { parse_mode: 'Markdown' });
+    }
+
+    const quizName = match[1].trim();
+    const rawUsername = match[2].trim();
+    const usernameToFind = rawUsername.replace('@', '').toLowerCase(); // remove @ for matching
+    const quizScore = parseFloat(match[3]);
+
+    try {
+        const db = await readDB();
+        const student = db.find(s => s.username && s.username.replace('@', '').toLowerCase() === usernameToFind);
+
+        if (!student) {
+            return safeSend(chatId, `❌ No student found with username *${rawUsername}*. Make sure they used /start to link their account.`, { parse_mode: 'Markdown' });
+        }
+
+        await withDB(db2 => {
+            const s = db2.find(x => x.invoiceId === student.invoiceId);
+            if (s) {
+                // Initialize quizScores object if it doesn't exist
+                if (!s.quizScores) s.quizScores = {}; 
+                
+                // Save the score for this specific quiz
+                s.quizScores[quizName] = quizScore;   
+                
+                // Calculate cumulative score out of 100 (using average of all quizzes taken)
+                const scores = Object.values(s.quizScores);
+                const sum = scores.reduce((acc, curr) => acc + curr, 0);
+                s.score = parseFloat((sum / scores.length).toFixed(2)); // Average score out of 100
+            }
+        });
+
+        await safeSend(
+            chatId,
+            `✅ *Quiz Score Recorded*\n\n*Student:* ${student.firstName} ${student.lastName}\n*Quiz:* ${quizName}\n*Score:* ${quizScore}\n\n📊 *Updated Total Score:* ${student.score}/100`,
+            { parse_mode: 'Markdown' }
+        );
+    } catch (err) {
+        console.error('❌ [/addquiz] Error:', err.message);
+        await safeSend(chatId, '⚠️ Failed to record quiz score: ' + err.message, { parse_mode: 'Markdown' });
+    }
+});
+
+// ==========================================
 // ADMIN COMMAND 6: /help - Show Available Commands
 // ==========================================
 bot.onText(/\/help/, async (msg) => {
