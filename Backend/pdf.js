@@ -105,7 +105,7 @@ async function generateStudentsPDF(students) {
             { label: '#',        w: 24  },
             { label: 'Name',     w: 120 },
             { label: 'Invoice',  w: 100 },
-            { label: 'Email',    w: 140 },
+            { label: 'Telegram', w: 140 },
             { label: 'DOB',      w: 65  },
             { label: 'Wilaya',   w: 45  },
             { label: 'Specialty',w: 90  },
@@ -190,10 +190,10 @@ async function generateStudentsPDF(students) {
 
             drawRow([
                 i + 1,                                                // #
-                `${safeText(s.firstName)} ${safeText(s.lastName)}`,   // Name
+                safeText(s.fullName),                                 // Name
                 s.invoiceId || 'N/A',                                 // Invoice
-                s.email || 'N/A',                                     // Email
-                s.dob || 'N/A',                                       // DOB
+                safeText(s.username),                                 // Telegram
+                s.dob || 'N/A',                                       // DOB                                       // DOB
                 s.wilaya || 'N/A',                                    // Wilaya
                 s.shaba || 'N/A',                                     // Specialty
                 nizamiText,                                           // School Type
