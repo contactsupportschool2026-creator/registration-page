@@ -349,7 +349,7 @@
         }
 
         // Start Quiz Logic
-        startBtn.addEventListener('click', () => {
+        startBtn.addEventListener('click', async () => {
             if(usernameInput.value.trim() === '') {
                 alert('Please enter your Telegram username to start.');
                 return;
@@ -361,6 +361,31 @@
                 studentUsername = '@' + studentUsername;
             }
 
+            // Disable button while we check the database
+            startBtn.disabled = true;
+            startBtn.textContent = 'Checking username...';
+
+            try {
+                // Verify username against the database via server.js API
+                const response = await fetch(`/api/check-username?username=${encodeURIComponent(studentUsername)}`);
+                const data = await response.json();
+                
+                if (!data.valid) {
+                    alert('Username not found. Please make sure you clicked the bot link after payment to link your account.');
+                    startBtn.disabled = false;
+                    startBtn.textContent = 'Start Quiz';
+                    return;
+                }
+            } catch (error) {
+                alert('Error connecting to the server. Please try again.');
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Quiz';
+                return;
+            }
+
+            // Re-enable button and start quiz
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start Quiz';
             startScreen.classList.remove('active');
             quizScreen.classList.add('active');
             loadQuestion();
@@ -448,10 +473,12 @@
                 return;
             }
 
+            // Calculate score out of 100 with 2 decimal places
+            const percentageScore = ((score / quizData.length) * 100).toFixed(2);
+            
+            // Format message specifically for the /addquiz bot command to read
             const message = `📝 *New Quiz Result*\n\n` +
-                            `*Student:* ${studentUsername}\n` +
-                            `*Score:* ${score}/${quizData.length}\n` +
-                            `*Quiz:* Advice`;
+                            `Quiz: Advice | Username: ${studentUsername} | Score: ${percentageScore}`;
             
             const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
             
