@@ -564,7 +564,7 @@ bot.on('callback_query', async (query) => {
                 return;
             }
 
-            const name = `${deleted.firstName} ${deleted.lastName}`;
+            const name = `${deleted.fullName}`;
             await bot.answerCallbackQuery(query.id, { text: '✅ Student deleted.' });
             await bot.editMessageText(
                 `✅ *Student Deleted*\n\n*Name:* ${name}\n*Invoice:* \`${invoiceId}\`\n*Status was:* ${deleted.status}`,
