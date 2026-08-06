@@ -69,8 +69,8 @@ async function createRenewalLink(student) {
     const payload = {
         amount:      2000,
         currency:    'dzd',
-        description: `Renouvellement: ${student.firstName} ${student.lastName}`,
-        client_name: `${student.firstName} ${student.lastName}`,
+        description: `Renouvellement: ${student.fullName}`,
+        client_name: student.fullName,
         client_email: student.email || 'student@example.com',
         back_url:    `${process.env.FRONTEND_URL}/payment.html`,
         webhook_url: `${process.env.BACKEND_URL}/api/webhook/chargily`
@@ -292,8 +292,8 @@ async function handleSearchQuery(chatId, query) {
         const q = query.toLowerCase();
         const results = db.filter(s => {
             return (
-                (s.firstName && s.firstName.toLowerCase().includes(q)) ||
-                (s.lastName && s.lastName.toLowerCase().includes(q)) ||
+                (s.fullName && s.fullName.toLowerCase().includes(q)) ||
+                (s.username && s.username.toLowerCase().includes(q)) ||
                 (s.invoiceId && s.invoiceId.toLowerCase().includes(q)) ||
                 (s.wilaya && s.wilaya.toLowerCase().includes(q)) ||
                 (s.shaba && s.shaba.toLowerCase().includes(q)) ||
@@ -379,12 +379,11 @@ async function handleStatusQuery(chatId, query) {
             return safeSend(chatId, '📭 *No students in the database.*', { parse_mode: 'Markdown' });
         }
 
-        const q = query.toLowerCase();
+        const q = text.toLowerCase();
         const results = db.filter(s => {
-            const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+            const fullName = (s.fullName || '').toLowerCase();
             return fullName.includes(q) ||
-                   (s.firstName && s.firstName.toLowerCase().includes(q)) ||
-                   (s.lastName && s.lastName.toLowerCase().includes(q)) ||
+                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
                    (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
         });
 
@@ -467,10 +466,9 @@ async function handleDeleteQuery(chatId, text) {
         const db = await readDB();
         const q = text.toLowerCase();
         const results = db.filter(s => {
-            const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+            const fullName = (s.fullName || '').toLowerCase();
             return fullName.includes(q) ||
-                   (s.firstName && s.firstName.toLowerCase().includes(q)) ||
-                   (s.lastName && s.lastName.toLowerCase().includes(q)) ||
+                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
                    (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
         });
 
@@ -648,10 +646,9 @@ async function handleExportQuery(chatId, text) {
         const db = await readDB();
         const q = text.toLowerCase();
         const results = db.filter(s => {
-            const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+            const fullName = (s.fullName || '').toLowerCase();
             return fullName.includes(q) ||
-                   (s.firstName && s.firstName.toLowerCase().includes(q)) ||
-                   (s.lastName && s.lastName.toLowerCase().includes(q)) ||
+                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
                    (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
         });
 
@@ -754,12 +751,11 @@ async function handleScoreQuery(chatId, text) {
             const db = await readDB();
             const q = text.toLowerCase();
             const results = db.filter(s => {
-                const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
-                return fullName.includes(q) ||
-                       (s.firstName && s.firstName.toLowerCase().includes(q)) ||
-                       (s.lastName && s.lastName.toLowerCase().includes(q)) ||
-                       (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
-            });
+            const fullName = (s.fullName || '').toLowerCase();
+            return fullName.includes(q) ||
+                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
+                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
+        });
 
             if (results.length === 0) {
                 pendingScoreQueries.set(chatId.toString(), { step: 'find', student: null });
@@ -993,13 +989,12 @@ async function handleExtendQuery(chatId, text) {
             const db = await readDB();
             const q = text.toLowerCase();
             const results = db.filter(s => {
-                const fullName = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
-                return fullName.includes(q) ||
-                       (s.firstName && s.firstName.toLowerCase().includes(q)) ||
-                       (s.lastName && s.lastName.toLowerCase().includes(q)) ||
-                       (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
+            const fullName = (s.fullName || '').toLowerCase();
+            return fullName.includes(q) ||
+                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
+                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
             });
-
+            
             if (results.length === 0) {
                 pendingExtendQueries.set(chatId.toString(), { step: 'find', student: null });
                 return safeSend(chatId, `🔍 No students found matching "*${text}*". Try again.`, { parse_mode: 'Markdown' });
@@ -1091,7 +1086,8 @@ function formatStudentCard(student) {
     return `
 👤 *Student Details*
 
-*Name:* ${student.firstName} ${student.lastName}
+*Name:* ${student.fullName}
+*Telegram:* ${student.username || 'N/A'}
 *Invoice:* \`${student.invoiceId}\`
 *Date of Birth:* ${student.dob}
 *Wilaya:* ${student.wilaya}
