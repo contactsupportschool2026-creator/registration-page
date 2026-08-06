@@ -140,10 +140,42 @@ app.get('/api/debug/env', (req, res) => {
 });
 
 app.post('/api/create-checkout', async (req, res) => {
-    try {
-        const { firstName, lastName, email, dob, wilaya, shaba, isNizami, schoolName } = req.body;
-        const studentData = { firstName, lastName, email, dob, wilaya, shaba, isNizami, schoolName, status: 'pending', subscriptionStartDate: null, subscriptionEndDate: null, chatId: null, invoiceId: null, warnedTimestamp: null, linkSentTimestamp: null, renewalCount: 0 };
-        const chargilyPayload = { amount: 2000, currency: 'dzd', payment_method: 'edahabia', success_url: process.env.FRONTEND_URL + '/payment.html', webhook_endpoint: process.env.BACKEND_URL + '/api/webhook/chargily', description: 'School Registration: ' + firstName + ' ' + lastName, metadata: { first_name: firstName, last_name: lastName, email, wilaya, shaba } };
+        try {
+        const { fullName, telegramUsername, dob, wilaya, shaba, isNizami, schoolName } = req.body;
+        
+        // Format username to ensure it starts with '@'
+        let formattedUsername = telegramUsername.trim();
+        if (!formattedUsername.startsWith('@')) {
+            formattedUsername = '@' + formattedUsername;
+        }
+
+        const studentData = { 
+            fullName, 
+            username: formattedUsername, // Saved as 'username' to match the bot logic
+            dob, 
+            wilaya, 
+            shaba, 
+            isNizami, 
+            schoolName, 
+            status: 'pending', 
+            subscriptionStartDate: null, 
+            subscriptionEndDate: null, 
+            chatId: null, 
+            invoiceId: null, 
+            warnedTimestamp: null, 
+            linkSentTimestamp: null, 
+            renewalCount: 0 
+        };
+        
+        const chargilyPayload = { 
+            amount: 2000, 
+            currency: 'dzd', 
+            payment_method: 'edahabia', 
+            success_url: process.env.FRONTEND_URL + '/payment.html', 
+            webhook_endpoint: process.env.BACKEND_URL + '/api/webhook/chargily', 
+            description: 'School Registration: ' + fullName, 
+            metadata: { full_name: fullName, telegram: formattedUsername, wilaya, shaba } 
+        };
 
         console.log('DEBUG: Creating chargily checkout', JSON.stringify(chargilyPayload));
 
@@ -156,10 +188,12 @@ app.post('/api/create-checkout', async (req, res) => {
 
         studentData.invoiceId = chargilyResponse.data.id;
         await withDB(db => db.push(studentData));
-        await telegramNotify('*New Registration*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
+        
+        // Update Telegram notification to show FullName and Telegram Username
+        await telegramNotify('*New Registration*\nName: ' + fullName + '\nTelegram: ' + formattedUsername + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
 
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
-
+            
     } catch (error) {
         console.error('Checkout Error:', error.message);
         let errorMsg = error.message, errorStatus = 500;
