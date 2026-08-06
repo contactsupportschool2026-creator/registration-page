@@ -867,6 +867,7 @@ bot.onText(/\/help/, async (msg) => {
 *✏️ Manage Students*
 \`/updatestatus\` — Change a student's status (paid/pending/warned/kicked)
 \`/delete\` — Delete a student (with confirmation)
+\`/addquiz\` — Record a quiz score (reply to the bot's forwarded message)
 \`/setscore\` — Set a student's score (0-100)
 \`/sendlink <invoiceId>\` — Send a payment renewal link to a student
 \`/extend\` — Add days to a student's subscription
