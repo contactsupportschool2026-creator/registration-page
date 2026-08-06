@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advice - English Quiz</title>
+    
+    <!-- Elegant Coding Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --btn-bg: rgba(0, 0, 0, 0.05);
+            --btn-hover: rgba(0, 0, 0, 0.1);
+            --card-bg: rgba(0, 0, 0, 0.02);
+            --border-radius: 16px;
+            --transition-speed: 0.3s;
+            --correct-color: rgba(0, 200, 0, 0.4);
+            --wrong-color: rgba(255, 50, 50, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Fira Code', monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: opacity var(--transition-speed) ease, transform var(--transition-speed) ease;
+            position: relative;
+        }
+
+        /* Screen Management */
+        .screen {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Typography & Elements */
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            font-size: 0.9rem;
+            color: #555;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border var(--transition-speed);
+        }
+
+        input[type="text"]:focus {
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+
+        .btn {
+            background: var(--btn-bg);
+            color: var(--text-color);
+            border: none;
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background var(--transition-speed), transform 0.1s ease;
+        }
+
+        .btn:hover {
+            background: var(--btn-hover);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .telegram-placeholder {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 10px;
+            color: #999;
+        }
+
+        /* Question Card */
+        .question-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .question-card p {
+            text-align: left;
+            color: #000;
+            font-size: 0.9rem;
+        }
+
+        .feedback-area {
+            min-height: 40px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #333;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Bubble Animations */
+        .bubble {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.2);
+            animation: bubblePop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .bubble.correct {
+            background: var(--correct-color);
+            border: 2px solid rgba(0, 200, 0, 0.6);
+        }
+
+        .bubble.wrong {
+            background: var(--wrong-color);
+            border: 2px solid rgba(255, 50, 50, 0.6);
+        }
+
+        @keyframes bubblePop {
+            0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+        }
+
+        .final-score {
+            font-size: 2.5rem;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .status-text {
+            font-weight: 500;
+            color: #000;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <h1>Advice</h1>
+            <p>Complete the sentence “b” so it means the same as the sentence “a”. Practice your English grammar!</p>
+            <div>
+                <label for="telegram-user">Enter your Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username" required>
+            </div>
+            <button class="btn" id="start-btn">Start Quiz</button>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <span id="question-counter" style="font-size: 0.8rem; font-weight: 600;">Question 1/7</span>
+            </div>
+            
+            <div class="question-card">
+                <p id="sentence-a"></p>
+            </div>
+
+            <div>
+                <label for="answer-input" id="sentence-b-label"></label>
+                <input type="text" id="answer-input" placeholder="Type your answer here...">
+            </div>
+
+            <div class="feedback-area" id="feedback-area"></div>
+            
+            <button class="btn" id="submit-btn">Submit Answer</button>
+            <button class="btn" id="next-btn" style="display: none;">Next Question</button>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <h1>Quiz Finished!</h1>
+            <p id="result-message">You did a great job.</p>
+            <div class="final-score" id="final-score">0/7</div>
+            <p class="telegram-placeholder status-text" id="telegram-status">Sending your score to your teacher...</p>
+            <button class="btn" id="restart-btn">Retake Quiz</button>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // TELEGRAM BOT CONFIGURATION
+        // ==========================================
+        // 1. PASTE YOUR TELEGRAM BOT API TOKEN HERE:
+        const TELEGRAM_BOT_TOKEN = '8600205409:AAHxFVkLuoTL5pKoZOBkhK5spfomJv5zHzQ'; 
+        
+        // 2. PASTE YOUR TELEGRAM CHAT ID HERE:
+        const TELEGRAM_CHAT_ID = '7969710102'; 
+        // ==========================================
+
+        const quizData = [
+            {
+                sentenceA: '1.a. Private sectors should give equal treatment to their workers.',
+                sentenceBLabel: "1.b. It's high time...",
+                answer: 'private sectors gave equal treatment to their workers'
+            },
+            {
+                sentenceA: '2.a. It is recommended for the government to protect their citizens',
+                sentenceBLabel: '2.b. The government...',
+                answer: 'should protect their citizens'
+            },
+            {
+                sentenceA: '3.a. International health organizations should fight counterfeit medicines.',
+                sentenceBLabel: "3.b. It's high time...",
+                answer: 'international health organizations fought counterfeit medicines'
+            },
+            {
+                sentenceA: '4.a. Government should impose severe laws on smugglers',
+                sentenceBLabel: "4.b. It's high time...",
+                answer: 'governments imposed severe laws on smugglers'
+            },
+            {
+                sentenceA: '5.a. Governments should protect children from exploitation.',
+                sentenceBLabel: "5.b. It's high time...",
+                answer: 'governments protected children from exploitation'
+            },
+            {
+                sentenceA: '6.a. It is not advisable for businessmen to work unethically.',
+                sentenceBLabel: '6.b. Businessmen...',
+                answer: 'had better work unethically'
+            },
+            {
+                sentenceA: "7.a. If I were you, I wouldn't buy counterfeits.",
+                sentenceBLabel: '7.b. You...',
+                answer: "shouldn't buy counterfeits"
+            }
+        ];
+
+        // DOM Elements
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        const usernameInput = document.getElementById('telegram-user');
+        const answerInput = document.getElementById('answer-input');
+        const sentenceA = document.getElementById('sentence-a');
+        const sentenceBLabel = document.getElementById('sentence-b-label');
+        const questionCounter = document.getElementById('question-counter');
+        const feedbackArea = document.getElementById('feedback-area');
+        const finalScore = document.getElementById('final-score');
+        const resultMessage = document.getElementById('result-message');
+        const telegramStatus = document.getElementById('telegram-status');
+        const appContainer = document.querySelector('.app-container');
+
+        // State Variables
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let studentUsername = '';
+
+        // Helper function to normalize text for fair checking
+        function normalizeText(text) {
+            return text.toLowerCase()
+                       .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
+                       .replace(/\s{2,}/g, " ")
+                       .trim();
+        }
+
+        // Bubble Animation Generator
+        function createBubble(isCorrect) {
+            const bubble = document.createElement('div');
+            bubble.className = `bubble ${isCorrect ? 'correct' : 'wrong'}`;
+            appContainer.appendChild(bubble);
+            
+            // Remove bubble from DOM after animation finishes
+            setTimeout(() => {
+                bubble.remove();
+            }, 800);
+        }
+
+        // Start Quiz Logic
+        startBtn.addEventListener('click', () => {
+            if(usernameInput.value.trim() === '') {
+                alert('Please enter your Telegram username to start.');
+                return;
+            }
+            
+            // Format username to ensure it starts with '@'
+            studentUsername = usernameInput.value.trim();
+            if (!studentUsername.startsWith('@')) {
+                studentUsername = '@' + studentUsername;
+            }
+
+            startScreen.classList.remove('active');
+            quizScreen.classList.add('active');
+            loadQuestion();
+        });
+
+        // Load Question
+        function loadQuestion() {
+            const q = quizData[currentQuestionIndex];
+            sentenceA.textContent = q.sentenceA;
+            sentenceBLabel.textContent = q.sentenceBLabel;
+            answerInput.value = '';
+            
+            questionCounter.textContent = `Question ${currentQuestionIndex + 1}/${quizData.length}`;
+            
+            feedbackArea.style.opacity = '0';
+            feedbackArea.textContent = '';
+
+            submitBtn.style.display = 'block';
+            nextBtn.style.display = 'none';
+            answerInput.focus();
+        }
+
+        // Submit Answer Logic
+        submitBtn.addEventListener('click', () => {
+            const userAnswer = answerInput.value.trim();
+            if(userAnswer === '') {
+                alert('Please type your answer.');
+                return;
+            }
+
+            const correctAnswer = quizData[currentQuestionIndex].answer;
+            const isCorrect = normalizeText(userAnswer) === normalizeText(correctAnswer);
+
+            createBubble(isCorrect);
+
+            if(isCorrect) {
+                score++; // Score updates silently in the background
+                feedbackArea.textContent = 'Correct! Well done.';
+                feedbackArea.style.color = 'green';
+            } else {
+                feedbackArea.textContent = `Wrong. Correct answer: "${correctAnswer}"`;
+                feedbackArea.style.color = 'red';
+            }
+
+            feedbackArea.style.opacity = '1';
+
+            submitBtn.style.display = 'none';
+            nextBtn.style.display = 'block';
+        });
+
+        // Next Question Logic
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            if(currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        });
+
+        // Show Results Logic
+        function showResults() {
+            quizScreen.classList.remove('active');
+            resultScreen.classList.add('active');
+            finalScore.textContent = `${score}/${quizData.length}`; // Score revealed only here
+            
+            if(score >= 5) {
+                resultMessage.textContent = 'Excellent work! You mastered giving Advice.';
+            } else if(score >= 3) {
+                resultMessage.textContent = 'Good effort! Keep practicing.';
+            } else {
+                resultMessage.textContent = 'Needs improvement. Review the rules and try again!';
+            }
+
+            // Trigger Telegram API
+            sendToTelegram();
+        }
+
+        // Telegram Integration Logic
+        async function sendToTelegram() {
+            // Prevent sending if developer hasn't added credentials yet
+            if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE' || TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID_HERE') {
+                telegramStatus.textContent = 'Teacher needs to setup Telegram Bot credentials.';
+                telegramStatus.style.color = 'red';
+                return;
+            }
+
+            const message = `📝 *New Quiz Result*\n\n` +
+                            `*Student:* ${studentUsername}\n` +
+                            `*Score:* ${score}/${quizData.length}\n` +
+                            `*Quiz:* Advice`;
+            
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    telegramStatus.textContent = '✅ Score sent to your teacher successfully!';
+                    telegramStatus.style.color = 'green';
+                } else {
+                    telegramStatus.textContent = '⚠️ Error sending score. Please inform your teacher.';
+                    telegramStatus.style.color = 'red';
+                    console.error('Telegram API Error:', data);
+                }
+            } catch (error) {
+                telegramStatus.textContent = '⚠️ Network error. Could not send score.';
+                telegramStatus.style.color = 'red';
+                console.error('Fetch Error:', error);
+            }
+        }
+
+        // Restart Logic
+        restartBtn.addEventListener('click', () => {
+            currentQuestionIndex = 0;
+            score = 0;
+            studentUsername = '';
+            usernameInput.value = '';
+            telegramStatus.textContent = 'Sending your score to your teacher...';
+            telegramStatus.style.color = '#999';
+            resultScreen.classList.remove('active');
+            startScreen.classList.add('active');
+        });
+
+    </script>
+</body>
+</html>
