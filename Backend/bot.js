@@ -1048,7 +1048,7 @@ async function handleExtendQuery(chatId, text) {
                     s.warnedTimestamp = null;
                     s.linkSentTimestamp = null;
                     result = {
-                        name: `${s.firstName} ${s.lastName}`,
+                        name: `${s.fullName}`,
                         invoiceId: s.invoiceId,
                         oldEnd: currentEnd.toISOString().split('T')[0],
                         newEnd: newEnd.toISOString().split('T')[0],
@@ -1160,7 +1160,7 @@ cron.schedule('0 8 * * *', async () => {
     if (expiringSoon.length > 0) {
         let adminMsg = `📅 *Daily Expiry Alert — ${expiringSoon.length} student(s) expiring soon:*\n\n`;
         expiringSoon.forEach(({ student: s, diffDays }) => {
-            adminMsg += `• *${s.firstName} ${s.lastName}* — ${diffDays} day(s) left\n`;
+            adminMsg += `• *${s.fullName}* — ${diffDays} day(s) left\n`;
             adminMsg += `  Invoice: \`${s.invoiceId}\`\n`;
             adminMsg += `  ➡️ Use /sendlink ${s.invoiceId} to send them a payment link\n\n`;
         });
