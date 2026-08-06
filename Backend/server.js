@@ -205,7 +205,7 @@ app.post('/api/create-checkout', async (req, res) => {
                 else errorMsg = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
             }
         }
-        await telegramNotify('❌ *CHECKOUT FAILED*\nName: ' + firstName + ' ' + lastName + '\nEmail: ' + email + '\nError: ' + errorMsg + '\nStatus: ' + errorStatus);
+        await telegramNotify('❌ *CHECKOUT FAILED*\nError: ' + errorMsg + '\nStatus: ' + errorStatus);
         res.status(errorStatus).json({ error: errorMsg });
     }
 });
