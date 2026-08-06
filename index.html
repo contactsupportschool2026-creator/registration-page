@@ -84,108 +84,187 @@
     </style>
 </head>
 <body>
+        <!-- Full Screen Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="loader-bubbles">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="loader-text">You're being directed to the payment page of Chargily to complete the process.</div>
+    </div>
+
     <div class="form-container">
         <div class="header">
-            <h1>Registration Form</h1>
+            <h1>Bac & Beyond</h1>
+            <h2>Registration Form</h2>
             <p>استمارة التسجيل</p>
         </div>
 
-        <div class="input-group">
-            <div class="label-row"><span>First Name <span class="label-ar">الإسم</span></span></div>
-            <input type="text" id="firstName" placeholder="e.g. Ahmed" required>
-        </div>
-
-        <div class="input-group">
-            <div class="label-row"><span>Last Name <span class="label-ar">اللقب</span></span></div>
-            <input type="text" id="lastName" placeholder="e.g. Benali" required>
-        </div>
-
-        <div class="input-group">
-            <div class="label-row"><span>Email Address <span class="label-ar">البريد الإلكتروني</span></span></div>
-            <input type="email" id="email" placeholder="e.g. ahmed@example.com" required>
-        </div>
-
-        <div class="input-group">
-            <div class="label-row"><span>Date of Birth <span class="label-ar">تاريخ الميلاد</span></span></div>
-            <input type="text" id="dob" placeholder="YYYY-MM-DD" maxlength="10" required>
-        </div>
-
-        <div class="input-group">
-            <div class="label-row"><span>State <span class="label-ar">الولاية</span></span></div>
-            <select id="wilaya" required>
-                <option value="" disabled selected>Select Wilaya...</option>
-                <option value="01">01 - Adrar</option><option value="02">02 - Chlef</option><option value="03">03 - Laghouat</option><option value="04">04 - Oum El Bouaghi</option><option value="05">05 - Batna</option><option value="06">06 - Béjaïa</option><option value="07">07 - Biskra</option><option value="08">08 - Bechar</option><option value="09">09 - Blida</option><option value="10">10 - Boumerdes</option><option value="11">11 - El Tarf</option><option value="12">12 - Constantine</option><option value="13">13 - Tiaret</option><option value="14">14 - Tlemcen</option><option value="15">15 - Oran</option><option value="16">16 - El Asnam</option><option value="17">17 - Djelfa</option><option value="18">18 - Jijel</option><option value="19">19 - Sétif</option><option value="20">20 - Saïda</option><option value="21">21 - Skikda</option><option value="22">22 - Sidi Bel Abbes</option><option value="23">23 - Annaba</option><option value="24">24 - Guelma</option><option value="25">25 - Tébessa</option><option value="26">26 - Khenchela</option><option value="27">27 - Souk Ahras</option><option value="28">28 - Mila</option><option value="29">29 - Aïn Défla</option><option value="30">30 - Naama</option><option value="31">31 - Ouargla</option><option value="32">32 - Oran (Wilaya)</option><option value="33">33 - El Bayadh</option><option value="34">34 - Illizi</option><option value="35">35 - Bordj Baji Mokhtar</option><option value="36">36 - Ouled Djellal</option><option value="37">37 - Béni Abbès</option><option value="38">38 - Tindouf</option><option value="39">39 - Touggourt</option><option value="40">40 - Djanet</option><option value="41">41 - El Oued</option><option value="42">42 - Khemis Miliana</option><option value="43">43 - Relizane</option><option value="44">44 - Ain Temouchent</option><option value="45">45 - Ghardaia</option><option value="46">46 - Mila</option><option value="47">47 - Aïn M'lila</option><option value="48">48 - Tassademine</option>
-            </select>
-        </div>
-
-        <div class="input-group">
-            <div class="label-row"><span>Specialty <span class="label-ar">الشعبة</span></span></div>
-            <select id="shaba" required>
-                <option value="" disabled selected>Select Specialty...</option>
-                <option value="sciences expérimentales">Sciences Expérimentales (علوم تجريبية)</option>
-                <option value="mathématiques">Mathématiques (رياضيات)</option>
-                <option value="technique mathématiques">Technique Mathématiques (تقني رياضي)</option>
-                <option value="gestion et économie">Gestion et Économie (تسيير واقتصاد)</option>
-                <option value="lettres et philosophie">Lettres et Philosophie (آداب وفلسفة)</option>
-                <option value="langues étrangères">Langues Étrangères (لغات أجنبية)</option>
-                <option value="technique sciences expérimentales">Tech. Sciences Exp. (تقني علوم تجريبية)</option>
-                <option value="informatique">Informatique (إعلام آلي)</option>
-            </select>
-        </div>
-
-        <div class="input-group">
-            <div class="toggle-container">
-                <span>School Type: <span class="label-ar"><span id="nidamiLabel">نظامي</span> أو <span id="hurrLabel">حر</span></span></span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="nizami">
-                    <span class="slider"></span>
-                </label>
+        <!-- Full Name & Telegram Username -->
+        <div class="row-group">
+            <div class="input-group">
+                <div class="label-row"><span>Full Name <span class="label-ar">الاسم الكامل</span></span></div>
+                <input type="text" id="fullName" placeholder="e.g. Ahmed Benali" required>
+            </div>
+            <div class="input-group">
+                <div class="label-row"><span>Telegram <span class="label-ar">تيليغرام</span></span></div>
+                <input type="text" id="telegramUsername" placeholder="@username" required>
             </div>
         </div>
 
-        <div class="input-group">
-            <div class="label-row"><span>High School Name اسم الثانوية</span></div>
-            <input type="text" id="schoolName" placeholder="e.g. Lycée Mohamed Boudiaf">
+        <!-- Date of Birth & Specialty (Horizontal) -->
+        <div class="row-group">
+            <div class="input-group">
+                <div class="label-row"><span>Date of Birth <span class="label-ar">تاريخ الميلاد</span></span></div>
+                <input type="text" id="dob" placeholder="YYYY-MM-DD" maxlength="10" required>
+            </div>
+            <div class="input-group">
+                <div class="label-row"><span>Specialty <span class="label-ar">الشعبة</span></span></div>
+                <select id="shaba" required>
+                    <option value="" disabled selected>Select...</option>
+                    <option value="sciences expérimentales">Sciences Exp</option>
+                    <option value="mathématiques">Maths</option>
+                    <option value="technique mathématiques">Tech Maths</option>
+                    <option value="gestion et économie">Economy</option>
+                    <option value="lettres et philosophie">Literature</option>
+                    <option value="langues étrangères">Languages</option>
+                    <option value="technique sciences expérimentales">Tech Sci Exp</option>
+                    <option value="informatique">CS</option>
+                </select>
+            </div>
         </div>
 
-        <p class="price-tag">إشتراك الشهري : 2000 DA</p>
+        <!-- Wilaya & School Type Toggle (Horizontal) -->
+        <div class="row-group">
+            <div class="input-group">
+                <div class="label-row"><span>State <span class="label-ar">الولاية</span></span></div>
+                <select id="wilaya" required>
+                    <option value="" disabled selected>Select...</option>
+                    <option value="01">01</option><option value="02">02</option><option value="03">03</option>
+                    <option value="04">04</option><option value="05">05</option><option value="06">06</option>
+                    <option value="07">07</option><option value="08">08</option><option value="09">09</option>
+                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                    <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                    <option value="19">19</option><option value="20">20</option><option value="21">21</option>
+                    <option value="22">22</option><option value="23">23</option><option value="24">24</option>
+                    <option value="25">25</option><option value="26">26</option><option value="27">27</option>
+                    <option value="28">28</option><option value="29">29</option><option value="30">30</option>
+                    <option value="31">31</option><option value="32">32</option><option value="33">33</option>
+                    <option value="34">34</option><option value="35">35</option><option value="36">36</option>
+                    <option value="37">37</option><option value="38">38</option><option value="39">39</option>
+                    <option value="40">40</option><option value="41">41</option><option value="42">42</option>
+                    <option value="43">43</option><option value="44">44</option><option value="45">45</option>
+                    <option value="46">46</option><option value="47">47</option><option value="48">48</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <div class="label-row"><span>School Type <span class="label-ar">نوع التعليم</span></span></div>
+                <div class="toggle-container">
+                    <span style="font-size:0.8rem; color:#888;" id="nidamiLabel">حر</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="nizami">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- High School Name (Conditional) -->
+        <div class="highschool-wrapper" id="highschoolWrapper">
+            <div class="input-group">
+                <div class="label-row"><span>High School Name <span class="label-ar">اسم الثانوية</span></span></div>
+                <input type="text" id="schoolName" placeholder="e.g. Lycée Mohamed Boudiaf" style="position: relative; z-index: 2; background: rgba(255,255,255,0.9);">
+            </div>
+        </div>
 
         <button type="button" class="submit-btn" id="submitBtn">Proceed to Payment</button>
     </div>
-
-    <script src="script.js"></script>
+        <script src="script.js"></script>
     <script>
         const nizamiToggle = document.getElementById('nizami');
-        const schoolNameInput = document.getElementById('schoolName');
+        const highschoolWrapper = document.getElementById('highschoolWrapper');
         const nidamiLabel = document.getElementById('nidamiLabel');
-        const hurrLabel = document.getElementById('hurrLabel');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
 
-        // Set initial state: toggle OFF = حر (disabled school name)
-        if (!nizamiToggle.checked) {
-            schoolNameInput.disabled = true;
-            schoolNameInput.value = '';
-            schoolNameInput.placeholder = 'N/A (حر)';
-            hurrLabel.style.fontWeight = '700';
-            hurrLabel.style.color = '#000';
+        // Inputs for validation
+        const fullName = document.getElementById('fullName');
+        const telegramUsername = document.getElementById('telegramUsername');
+        const dob = document.getElementById('dob');
+        const wilaya = document.getElementById('wilaya');
+        const shaba = document.getElementById('shaba');
+        const schoolName = document.getElementById('schoolName');
+
+        // Toggle High School Field with smooth animation
+        nizamiToggle.addEventListener('change', function() {
+            if (this.checked) {
+                highschoolWrapper.classList.add('active');
+                nidamiLabel.textContent = 'نظامي';
+                schoolName.setAttribute('required', 'true');
+            } else {
+                highschoolWrapper.classList.remove('active');
+                nidamiLabel.textContent = 'حر';
+                schoolName.removeAttribute('required');
+                schoolName.value = '';
+            }
+            checkFormValidity();
+        });
+
+        // Real-time form validation for Button State
+        function checkFormValidity() {
+            let isValid = fullName.value.trim() !== '' &&
+                          telegramUsername.value.trim() !== '' &&
+                          dob.value.trim() !== '' &&
+                          wilaya.value !== '' &&
+                          shaba.value !== '';
+
+            if (nizamiToggle.checked && schoolName.value.trim() === '') {
+                isValid = false;
+            }
+
+            if (isValid) {
+                submitBtn.classList.add('active');
+                submitBtn.classList.remove('shake');
+            } else {
+                submitBtn.classList.remove('active');
+            }
         }
 
-        nizamiToggle.addEventListener('change', function() {
-            if (!this.checked) {
-                schoolNameInput.disabled = true;
-                schoolNameInput.value = '';
-                schoolNameInput.placeholder = 'N/A (حر)';
-                hurrLabel.style.fontWeight = '700';
-                hurrLabel.style.color = '#000';
-                nidamiLabel.style.fontWeight = '400';
-                nidamiLabel.style.color = '#888';
-            } else {
-                schoolNameInput.disabled = false;
-                schoolNameInput.placeholder = 'e.g. Lycée Mohamed Boudiaf';
-                nidamiLabel.style.fontWeight = '700';
-                nidamiLabel.style.color = '#000';
-                hurrLabel.style.fontWeight = '400';
-                hurrLabel.style.color = '#888';
+        // Attach validation listener to all inputs
+        [fullName, telegramUsername, dob, wilaya, shaba, schoolName].forEach(input => {
+            input.addEventListener('input', checkFormValidity);
+            input.addEventListener('change', checkFormValidity);
+        });
+
+        // Submit Logic with Loading Screen
+        submitBtn.addEventListener('click', () => {
+            checkFormValidity(); // Re-check
+            
+            if (!submitBtn.classList.contains('active')) {
+                // Trigger shake animation if invalid
+                submitBtn.classList.add('shake');
+                setTimeout(() => submitBtn.classList.remove('shake'), 500);
+                return;
             }
+
+            // Show full screen loading
+            loadingOverlay.classList.add('active');
+
+            // Here you would actually trigger the fetch to your backend.
+            const studentData = {
+                fullName: fullName.value,
+                telegramUsername: telegramUsername.value,
+                dob: dob.value,
+                wilaya: wilaya.value,
+                shaba: shaba.value,
+                isNizami: nizamiToggle.checked,
+                schoolName: schoolName.value || 'N/A (حر)'
+            };
+
+            console.log('Submitting:', studentData);
+            
+            // Example API call (assuming script.js handles it, or you fetch here)
+            // fetch('/api/create-checkout', { method: 'POST', body: JSON.stringify(studentData) })...
         });
     </script>
 </body>
