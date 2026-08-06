@@ -177,6 +177,52 @@ bot.on('message', async (msg) => {
     );
 });
 
+// ==========================================
+// FEATURE: AUTO-LINK STUDENT ON GROUP JOIN
+// ==========================================
+// Silentely watches for new members joining the Telegram group.
+bot.on('new_chat_members', async (msg) => {
+    const chatId = msg.chat.id.toString();
+    const groupChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
+
+    // Only proceed if this is the designated group
+    if (chatId !== groupChatId) return;
+
+    for (const newMember of msg.new_chat_members) {
+        // Ignore bots joining
+        if (newMember.is_bot) continue;
+
+        const username = newMember.username ? `@${newMember.username}` : null;
+        if (!username) continue; // Can't match without a public username
+
+        try {
+            let studentName = null;
+            let alreadyLinked = false;
+
+            await withDB(db => {
+                // Find student by the username they typed in the form
+                const student = db.find(s => s.username && s.username.toLowerCase() === username.toLowerCase());
+                if (student) {
+                    // If chatId is already saved, we don't need to do anything
+                    if (!student.chatId) {
+                        student.chatId = newMember.id.toString();
+                    }
+                    studentName = student.fullName;
+                }
+            });
+
+            if (studentName) {
+                console.log(`✅ Auto-linked ${username} (${studentName}) to the database via group join.`);
+            } else {
+                console.log(`⚠️ User ${username} joined the group but is not in the database.`);
+                // Optional: Notify admin that an unknown user joined
+                // await safeSend(process.env.TELEGRAM_CHAT_ID, `⚠️ Unknown user ${username} joined the group.`);
+            }
+        } catch (err) {
+            console.error('❌ [new_chat_members] Error:', err.message);
+        }
+    }
+});
 // ─────────────────────────────────────────────────────────────────────────────
 // STUDENT COMMAND: /start <invoiceId>  (exempt from the gate above)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,9 +237,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
         const student = db.find(s => s.invoiceId === invoiceId);
         if (student) {
             student.chatId = chatId.toString(); // always store as string
-            // NEW: Auto-extract and save the student's Telegram @username
-            student.username = msg.from.username ? `@${msg.from.username}` : null; 
-            studentName    = student.firstName;
+            studentName    = student.fullName; // Updated to fullName
         }
     });
 
