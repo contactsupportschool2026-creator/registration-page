@@ -109,6 +109,24 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
 });
 
 app.use(express.json());
+// ==========================================
+// API: Check Username (Used by HTML quizzes)
+// ==========================================
+app.get('/api/check-username', async (req, res) => {
+    try {
+        const requestedUsername = (req.query.username || '').toLowerCase().replace('@', '').trim();
+        if (!requestedUsername) return res.json({ valid: false });
+
+        const db = await readDB();
+        // Check if any student in the database has this Telegram username
+        const studentExists = db.some(s => s.username && s.username.toLowerCase().replace('@', '') === requestedUsername);
+
+        res.json({ valid: studentExists });
+    } catch (error) {
+        console.error('Check Username Error:', error.message);
+        res.status(500).json({ valid: false, error: 'Failed to check username' });
+    }
+});
 
 app.get('/api/debug/env', (req, res) => {
     res.json({
