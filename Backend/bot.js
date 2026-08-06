@@ -318,7 +318,7 @@ async function handleSearchQuery(chatId, query) {
         lines.push(`🔍 *${results.length} students found for "${query}":*
 `);
         results.forEach((s, i) => {
-            lines.push(`*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\` — ${s.status}`);
+            lines.push(`*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}`);
         });
         lines.push('');
 
@@ -399,7 +399,7 @@ async function handleStatusQuery(chatId, query) {
         // Multiple matches — show compact list, let them re-type a more specific query
         let msg = `🔍 *${results.length} students found for "${query}":*\n\n`;
         results.forEach((s, i) => {
-            msg += `*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\` — ${s.status}\n`;
+            msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}\n`;
         });
         msg += `\nType a more specific name or invoice ID to narrow it down.`;
 
@@ -480,7 +480,7 @@ async function handleDeleteQuery(chatId, text) {
         if (results.length > 1) {
             let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
             results.forEach((s, i) => {
-                msg += `*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\` — ${s.status}\n`;
+                msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}\n`;
             });
             msg += `\nType a more specific name.`;
             pendingDeleteQueries.add(chatId.toString());
@@ -659,7 +659,7 @@ async function handleExportQuery(chatId, text) {
         if (results.length > 1) {
             let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
             results.forEach((s, i) => {
-                msg += `*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\`\n`;
+                msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\`\n`;
             });
             msg += `\nType a more specific name.`;
             return safeSend(chatId, msg, { parse_mode: 'Markdown' });
@@ -766,7 +766,7 @@ async function handleScoreQuery(chatId, text) {
                 let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
                 results.forEach((s, i) => {
                     const sc = s.score != null ? `${s.score}/100` : 'N/A';
-                    msg += `*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\` — Score: ${sc}\n`;
+                    msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — Score: ${sc}\n`;
                 });
                 msg += `\nType a more specific name.`;
                 pendingScoreQueries.set(chatId.toString(), { step: 'find', student: null });
@@ -802,7 +802,7 @@ async function handleScoreQuery(chatId, text) {
                 if (s) {
                     s.score = score;
                     result = {
-                        name: `${s.firstName} ${s.lastName}`,
+                        name: `${s.fullName}`,
                         invoiceId: s.invoiceId,
                         score: score,
                     };
@@ -1004,7 +1004,7 @@ async function handleExtendQuery(chatId, text) {
                 let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
                 results.forEach((s, i) => {
                     const endDate = s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : 'N/A';
-                    msg += `*${i + 1}.* ${s.firstName} ${s.lastName} — \`${s.invoiceId}\` — ${s.status} — Ends: ${endDate}\n`;
+                    msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status} — Ends: ${endDate}\n`;
                 });
                 msg += `\nType a more specific name.`;
                 pendingExtendQueries.set(chatId.toString(), { step: 'find', student: null });
