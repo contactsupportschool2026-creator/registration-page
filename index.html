@@ -236,35 +236,10 @@
             input.addEventListener('change', checkFormValidity);
         });
 
-        // Submit Logic with Loading Screen
-        submitBtn.addEventListener('click', () => {
-            checkFormValidity(); // Re-check
-            
-            if (!submitBtn.classList.contains('active')) {
-                // Trigger shake animation if invalid
-                submitBtn.classList.add('shake');
-                setTimeout(() => submitBtn.classList.remove('shake'), 500);
-                return;
-            }
-
-            // Show full screen loading
-            loadingOverlay.classList.add('active');
-
-            // Here you would actually trigger the fetch to your backend.
-            const studentData = {
-                fullName: fullName.value,
-                telegramUsername: telegramUsername.value,
-                dob: dob.value,
-                wilaya: wilaya.value,
-                shaba: shaba.value,
-                isNizami: nizamiToggle.checked,
-                schoolName: schoolName.value || 'N/A (حر)'
-            };
-
-            console.log('Submitting:', studentData);
-            
-            // Example API call (assuming script.js handles it, or you fetch here)
-            // fetch('/api/create-checkout', { method: 'POST', body: JSON.stringify(studentData) })...
+                // Attach validation listener to all inputs
+        [fullName, telegramUsername, dob, wilaya, shaba, schoolName].forEach(input => {
+            input.addEventListener('input', checkFormValidity);
+            input.addEventListener('change', checkFormValidity);
         });
     </script>
 </body>
