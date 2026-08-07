@@ -8,6 +8,11 @@ const { initializeDB, readDB, withDB } = require('./db');
 const { withRetry }                    = require('./retry');
 
 const bot          = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+
+bot.on('polling_error', (error) => {
+    console.log('[bot] Telegram polling error (may be network):', error.code);
+    // Don't crash — just log it
+});
 const SUPPORT_TEXT = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
 
 // Ensure the database file exists before the bot starts handling messages
