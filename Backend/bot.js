@@ -1241,17 +1241,22 @@ console.log('🤖 Telegram Bot is running...');
     }
 })();
 
-// Graceful shutdown — stop polling so a new instance can take over
 process.on('SIGTERM', async () => {
     console.log('🛑 SIGTERM received — stopping bot polling...');
     cronJobs.forEach(job => job.stop());
-    await bot.stopPolling();
+    try { await bot.stopPolling(); } catch (e) {}
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('🛑 SIGINT received — stopping bot polling...');
     cronJobs.forEach(job => job.stop());
-    await bot.stopPolling();
+    try { await bot.stopPolling(); } catch (e) {}
     process.exit(0);
 });
+
+// Force exit after 5 seconds no matter what
+setTimeout(() => {
+    console.log('⚠️ Forced exit after timeout');
+    process.exit(1);
+}, 5000);
