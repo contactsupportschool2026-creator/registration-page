@@ -1167,7 +1167,7 @@ cronJobs.push(cron.schedule('0 8 * * *', async () => {
         });
         await safeSend(process.env.TELEGRAM_CHAT_ID, adminMsg, { parse_mode: 'Markdown' });
     }
-}, { timezone: 'Africa/Algiers' });
+}, { timezone: 'Africa/Algiers' }));
 
 // ==========================================
 // FEATURE 4: NON-PAYMENT ENFORCEMENT (Runs every hour)
@@ -1224,7 +1224,7 @@ cronJobs.push(cron.schedule('0 * * * *', async () => {
             console.error(`❌ [cron:hourly] Error processing ${student.fullName}:`, error.message);
         }
     }
-}, { timezone: 'Africa/Algiers' });
+}, { timezone: 'Africa/Algiers' }));
 
 console.log('🤖 Telegram Bot is running...');
 
