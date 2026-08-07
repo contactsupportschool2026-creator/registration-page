@@ -430,7 +430,7 @@ async function showStatusButtons(chatId, student) {
 
     await safeSend(
         chatId,
-        `🔧 *Update Status*\n\n*Student:* ${student.firstName} ${student.lastName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Status:* ${student.status}\n\nSelect the new status:`,
+        `🔧 *Update Status*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Status:* ${student.status}\n\nSelect the new status:`,
         { parse_mode: 'Markdown', ...buttons }
     );
 }
@@ -502,7 +502,7 @@ async function handleDeleteQuery(chatId, text) {
 
         await safeSend(
             chatId,
-            `⚠️ *Confirm Delete*\n\n*Student:* ${student.firstName} ${student.lastName}\n*Invoice:* \`${student.invoiceId}\`\n*Status:* ${student.status}\n\nThis cannot be undone. Are you sure?`,
+            `⚠️ *Confirm Delete*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Status:* ${student.status}\n\nThis cannot be undone. Are you sure?`,
             { parse_mode: 'Markdown', ...buttons }
         );
     } catch (err) {
@@ -597,7 +597,7 @@ bot.on('callback_query', async (query) => {
                 await withDB(db => {
                     const student = db.find(s => s.invoiceId === invoiceId);
                     if (student) {
-                        updated = { name: `${student.firstName} ${student.lastName}`, old: student.status };
+                        updated = { name: `${student.fullName}`, old: student.status };
                         student.status = newStatus;
 
                         // If setting to paid, set/refresh the 30-day subscription period
@@ -666,13 +666,13 @@ async function handleExportQuery(chatId, text) {
         }
 
         const student = results[0];
-        await safeSend(chatId, `⏳ Generating PDF for *${student.firstName} ${student.lastName}*…`, { parse_mode: 'Markdown' });
+        await safeSend(chatId, `⏳ Generating PDF for *${student.fullName}*…`, { parse_mode: 'Markdown' });
 
         const { generateStudentPDF } = require('./pdf');
         const pdfBuffer = await generateStudentPDF(student);
         const filename = `${student.firstName || 'student'}-${student.lastName || 'export'}-${student.invoiceId}.pdf`.replace(/\s+/g, '_');
 
-        await bot.sendDocument(chatId, pdfBuffer, { caption: `📄 ${student.firstName} ${student.lastName} — ${student.invoiceId}` }, { filename, contentType: 'application/pdf' });
+        await bot.sendDocument(chatId, pdfBuffer, { caption: `📄 ${student.fullName} — ${student.invoiceId}` }, { filename, contentType: 'application/pdf' });
     } catch (err) {
         console.error('❌ [/exportpdf one] Error:', err.message);
         await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
@@ -779,7 +779,7 @@ async function handleScoreQuery(chatId, text) {
 
             await safeSend(
                 chatId,
-                `📊 *Set Score*\n\n*Student:* ${student.firstName} ${student.lastName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Score:* ${currentScore}\n\nType the new score (0-100):`,
+                `📊 *Set Score*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Score:* ${currentScore}\n\nType the new score (0-100):`,
                 { parse_mode: 'Markdown' }
             );
         } catch (err) {
@@ -880,7 +880,7 @@ bot.onText(/^\/addquiz$/, async (msg) => {
 
         await safeSend(
             chatId,
-            `✅ *Quiz Score Recorded*\n\n*Student:* ${student.firstName} ${student.lastName}\n*Quiz:* ${quizName}\n*Score:* ${quizScore}\n\n📊 *Updated Total Score:* ${student.score}/100`,
+            `✅ *Quiz Score Recorded*\n\n*Student:* ${student.fullName}\n*Quiz:* ${quizName}\n*Score:* ${quizScore}\n\n📊 *Updated Total Score:* ${student.score}/100`,
             { parse_mode: 'Markdown' }
         );
     } catch (err) {
@@ -944,14 +944,14 @@ bot.onText(/\/sendlink (.+)/, async (msg, match) => {
         }
 
         if (!student.chatId) {
-            return safeSend(adminChatId, `⚠️ *${student.firstName} ${student.lastName}* has not linked their Telegram account yet — cannot send the link.`, { parse_mode: 'Markdown' });
+            return safeSend(adminChatId, `⚠️ *${student.fullName}* has not linked their Telegram account yet — cannot send the link.`, { parse_mode: 'Markdown' });
         }
 
-        await safeSend(adminChatId, `⏳ Generating payment link for *${student.firstName} ${student.lastName}*…`, { parse_mode: 'Markdown' });
+        await safeSend(adminChatId, `⏳ Generating payment link for *${student.fullName}*…`, { parse_mode: 'Markdown' });
 
         const checkoutUrl = await createRenewalLink(student);
         await safeSend(student.chatId, `💰 *Payment Link*\n\nHere is your payment link to renew your subscription:\n\n${checkoutUrl}${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
-        await safeSend(adminChatId, `✅ Payment link sent to *${student.firstName} ${student.lastName}*.`, { parse_mode: 'Markdown' });
+        await safeSend(adminChatId, `✅ Payment link sent to *${student.fullName}*.`, { parse_mode: 'Markdown' });
 
     } catch (error) {
         console.error('❌ [/sendlink] Error:', error.message);
@@ -1018,7 +1018,7 @@ async function handleExtendQuery(chatId, text) {
 
             await safeSend(
                 chatId,
-                `📅 *Extend Subscription*\n\n*Student:* ${student.firstName} ${student.lastName}\n*Invoice:* \`${student.invoiceId}\`\n*Status:* ${student.status}\n*Current End Date:* ${endDate}\n\nHow many days to add? (e.g. 7)`,
+                `📅 *Extend Subscription*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Status:* ${student.status}\n*Current End Date:* ${endDate}\n\nHow many days to add? (e.g. 7)`,
                 { parse_mode: 'Markdown' }
             );
         } catch (err) {
@@ -1152,7 +1152,7 @@ cron.schedule('0 8 * * *', async () => {
                 }
             }
         } catch (error) {
-            console.error(`❌ [cron:daily] Error processing ${student.firstName} ${student.lastName}:`, error.message);
+            console.error(`❌ [cron:daily] Error processing ${student.fullName}:`, error.message);
         }
     }
 
@@ -1220,7 +1220,7 @@ cron.schedule('0 * * * *', async () => {
                 }
             }
         } catch (error) {
-            console.error(`❌ [cron:hourly] Error processing ${student.firstName} ${student.lastName}:`, error.message);
+            console.error(`❌ [cron:hourly] Error processing ${student.fullName}:`, error.message);
         }
     }
 }, { timezone: 'Africa/Algiers' });
