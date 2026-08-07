@@ -226,7 +226,11 @@ app.get('/api/check-payment/:invoiceId', async (req, res) => {
 });
 
 // Start the Telegram bot (polling + cron jobs)
-require('./bot');
+try {
+    require('./bot');
+} catch (error) {
+    console.error('❌ FATAL: Bot failed to start — server will run without bot:', error.message);
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server running on port ' + PORT));
