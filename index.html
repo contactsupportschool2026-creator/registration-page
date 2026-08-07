@@ -6,7 +6,8 @@
     <title>التسجيل - Online School</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Added Montserrat for the elegant thick title -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Montserrat:wght@800&display=swap" rel="stylesheet">
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -15,53 +16,69 @@
             background-color: #ffffff; color: #111111; line-height: 1.6;
             padding: 20px; display: flex; justify-content: center; min-height: 100vh;
             animation: fadeIn 0.8s ease-out;
+            padding-bottom: 100px; /* Space for the fixed button */
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .form-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; position: relative; z-index: 1; }
+        .form-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 18px; position: relative; z-index: 1; }
         
         /* Logo & Header */
         .header { text-align: center; margin-bottom: 10px; }
-        .header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -1px; color: #000; }
-        .header h2 { font-size: 0.9rem; font-weight: 500; color: #333; margin-top: 4px; }
-        .header p { font-size: 0.8rem; color: #888; margin-top: 2px; }
+        .header h1 { 
+            font-family: 'Montserrat', sans-serif; 
+            font-size: 2.2rem; 
+            font-weight: 800; 
+            letter-spacing: -1.5px; 
+            color: #000; 
+            line-height: 1.2;
+        }
+        .header-titles { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 4px; }
+        .header h2 { font-size: 0.9rem; font-weight: 500; color: #333; }
+        .header p { font-size: 0.8rem; color: #888; }
 
         .input-group { display: flex; flex-direction: column; gap: 6px; }
         .row-group { display: flex; gap: 15px; }
         .row-group .input-group { flex: 1; }
         
-        .label-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 500; color: #333; }
-        .label-ar { font-weight: 400; color: #888; font-size: 0.75rem; }
+        .label-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 500; color: #333; white-space: nowrap; min-height: 15px; }
+        .label-ar { font-weight: 400; color: #888; font-size: 0.7rem; }
         
-        input[type="text"], input[type="email"], select {
-            width: 100%; padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 10px;
+        /* Force equal heights for inputs, selects, and toggle */
+        input[type="text"], select, .toggle-container {
+            height: 44px; 
+            padding: 0 14px;
+            display: flex;
+            align-items: center;
+        }
+        input[type="text"], select {
+            width: 100%; border: 1px solid #e0e0e0; border-radius: 10px;
             background-color: #fafafa; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
             color: #000; outline: none; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        input[type="text"]:focus, input[type="email"]:focus, select:focus { border-color: #d0d0d0; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        input[type="text"]:focus, select:focus { border-color: #d0d0d0; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         input::placeholder { color: #bbb; }
         select { appearance: none; -webkit-appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path fill="%23888" d="M0 0l5 6 5-6z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 30px; }
 
         /* Toggle & High School Logic */
-        .toggle-container { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fafafa; transition: all 0.3s; height: 100%; }
+        .toggle-container { justify-content: space-between; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fafafa; transition: all 0.3s; width: 100%; }
         .toggle-switch { position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #e0e0e0; transition: .3s; border-radius: 26px; }
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .toggle-switch input:checked + .slider { background-color: #8a2be2; } /* Purple Bubbles theme */
+        .toggle-switch input:checked + .slider { background-color: #8a2be2; }
         .toggle-switch input:checked + .slider:before { transform: translateX(20px); }
 
-        .highschool-wrapper { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease; position: relative; }
-        .highschool-wrapper.active { max-height: 100px; opacity: 1; margin-top: -5px; }
-        /* Purple bubbles background inside the wrapper */
-        .highschool-wrapper.active::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 10px;
-            background-image: radial-gradient(#8a2be2 15%, transparent 16%), radial-gradient(#8a2be2 15%, transparent 16%);
-            background-size: 20px 20px; background-position: 0 0, 10px 10px; opacity: 0.05; pointer-events: none;
-        }
+        /* High School Wrapper - Smooth Slide Down Animation */
+        .highschool-wrapper { max-height: 0; opacity: 0; overflow: hidden; transform: translateY(-10px); transition: max-height 0.4s ease, opacity 0.4s ease, margin 0.4s ease, transform 0.4s ease; }
+        .highschool-wrapper.active { max-height: 100px; opacity: 1; margin-top: 0px; transform: translateY(0); }
 
-        /* Submit Button Animations */
+        /* Fixed Submit Button at Bottom */
+        .submit-btn-wrapper {
+            position: fixed; bottom: 0; left: 0; right: 0; padding: 20px;
+            background: linear-gradient(to top, #ffffff 80%, rgba(255,255,255,0) 100%);
+            display: flex; justify-content: center; z-index: 10;
+        }
         .submit-btn {
-            width: 100%; padding: 15px; margin-top: 5px; background-color: #e0e0e0; color: #888;
+            width: 100%; max-width: 480px; padding: 15px; background-color: #e0e0e0; color: #888;
             border: none; border-radius: 12px; font-family: 'JetBrains Mono', monospace;
             font-size: 0.95rem; font-weight: 600; cursor: not-allowed; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
@@ -84,7 +101,7 @@
     </style>
 </head>
 <body>
-        <!-- Full Screen Loading Overlay -->
+    <!-- Full Screen Loading Overlay -->
     <div id="loadingOverlay">
         <div class="loader-bubbles">
             <span></span><span></span><span></span>
@@ -95,20 +112,21 @@
     <div class="form-container">
         <div class="header">
             <h1>Bac & Beyond</h1>
-            <h2>Registration Form</h2>
-            <p>استمارة التسجيل</p>
+            <div class="header-titles">
+                <h2>Registration Form</h2>
+                <p>استمارة التسجيل</p>
+            </div>
         </div>
 
-        <!-- Full Name & Telegram Username -->
-        <div class="row-group">
-            <div class="input-group">
-                <div class="label-row"><span>Full Name <span class="label-ar">الاسم الكامل</span></span></div>
-                <input type="text" id="fullName" placeholder="e.g. Ahmed Benali" required>
-            </div>
-            <div class="input-group">
-                <div class="label-row"><span>Telegram <span class="label-ar">تيليغرام</span></span></div>
-                <input type="text" id="telegramUsername" placeholder="@username" required>
-            </div>
+        <!-- Full Name & Telegram Username (Stacked Vertically) -->
+        <div class="input-group">
+            <div class="label-row"><span>Full Name <span class="label-ar">الاسم الكامل</span></span></div>
+            <input type="text" id="fullName" placeholder="e.g. Ahmed Benali" required>
+        </div>
+        
+        <div class="input-group">
+            <div class="label-row"><span>Telegram <span class="label-ar">تيليغرام</span></span></div>
+            <input type="text" id="telegramUsername" placeholder="@username" required>
         </div>
 
         <!-- Date of Birth & Specialty (Horizontal) -->
@@ -121,14 +139,14 @@
                 <div class="label-row"><span>Specialty <span class="label-ar">الشعبة</span></span></div>
                 <select id="shaba" required>
                     <option value="" disabled selected>Select...</option>
-                    <option value="sciences expérimentales">Sciences Exp</option>
-                    <option value="mathématiques">Maths</option>
-                    <option value="technique mathématiques">Tech Maths</option>
-                    <option value="gestion et économie">Economy</option>
-                    <option value="lettres et philosophie">Literature</option>
-                    <option value="langues étrangères">Languages</option>
-                    <option value="technique sciences expérimentales">Tech Sci Exp</option>
-                    <option value="informatique">CS</option>
+                    <option value="sciences expérimentales" data-ar="علوم تجريبية">Sciences Exp</option>
+                    <option value="mathématiques" data-ar="رياضيات">Maths</option>
+                    <option value="technique mathématiques" data-ar="تقني رياضي">Tech Maths</option>
+                    <option value="gestion et économie" data-ar="تسيير واقتصاد">Economy</option>
+                    <option value="lettres et philosophie" data-ar="آداب وفلسفة">Literature</option>
+                    <option value="langues étrangères" data-ar="لغات أجنبية">Languages</option>
+                    <option value="technique sciences expérimentales" data-ar="تقني علوم تجريبية">Tech Sci Exp</option>
+                    <option value="informatique" data-ar="إعلام آلي">CS</option>
                 </select>
             </div>
         </div>
@@ -139,22 +157,54 @@
                 <div class="label-row"><span>State <span class="label-ar">الولاية</span></span></div>
                 <select id="wilaya" required>
                     <option value="" disabled selected>Select...</option>
-                    <option value="01">01</option><option value="02">02</option><option value="03">03</option>
-                    <option value="04">04</option><option value="05">05</option><option value="06">06</option>
-                    <option value="07">07</option><option value="08">08</option><option value="09">09</option>
-                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-                    <option value="13">13</option><option value="14">14</option><option value="15">15</option>
-                    <option value="16">16</option><option value="17">17</option><option value="18">18</option>
-                    <option value="19">19</option><option value="20">20</option><option value="21">21</option>
-                    <option value="22">22</option><option value="23">23</option><option value="24">24</option>
-                    <option value="25">25</option><option value="26">26</option><option value="27">27</option>
-                    <option value="28">28</option><option value="29">29</option><option value="30">30</option>
-                    <option value="31">31</option><option value="32">32</option><option value="33">33</option>
-                    <option value="34">34</option><option value="35">35</option><option value="36">36</option>
-                    <option value="37">37</option><option value="38">38</option><option value="39">39</option>
-                    <option value="40">40</option><option value="41">41</option><option value="42">42</option>
-                    <option value="43">43</option><option value="44">44</option><option value="45">45</option>
-                    <option value="46">46</option><option value="47">47</option><option value="48">48</option>
+                    <option value="01 - Adrar">01 - Adrar</option>
+                    <option value="02 - Chlef">02 - Chlef</option>
+                    <option value="03 - Laghouat">03 - Laghouat</option>
+                    <option value="04 - Oum El Bouaghi">04 - Oum El Bouaghi</option>
+                    <option value="05 - Batna">05 - Batna</option>
+                    <option value="06 - Béjaïa">06 - Béjaïa</option>
+                    <option value="07 - Biskra">07 - Biskra</option>
+                    <option value="08 - Béchar">08 - Béchar</option>
+                    <option value="09 - Blida">09 - Blida</option>
+                    <option value="10 - Bouira">10 - Bouira</option>
+                    <option value="11 - Tamanrasset">11 - Tamanrasset</option>
+                    <option value="12 - Tébessa">12 - Tébessa</option>
+                    <option value="13 - Tlemcen">13 - Tlemcen</option>
+                    <option value="14 - Tiaret">14 - Tiaret</option>
+                    <option value="15 - Tizi Ouzou">15 - Tizi Ouzou</option>
+                    <option value="16 - Alger">16 - Alger</option>
+                    <option value="17 - Djelfa">17 - Djelfa</option>
+                    <option value="18 - Jijel">18 - Jijel</option>
+                    <option value="19 - Sétif">19 - Sétif</option>
+                    <option value="20 - Saïda">20 - Saïda</option>
+                    <option value="21 - Skikda">21 - Skikda</option>
+                    <option value="22 - Sidi Bel Abbès">22 - Sidi Bel Abbès</option>
+                    <option value="23 - Annaba">23 - Annaba</option>
+                    <option value="24 - Guelma">24 - Guelma</option>
+                    <option value="25 - Constantine">25 - Constantine</option>
+                    <option value="26 - Médéa">26 - Médéa</option>
+                    <option value="27 - Mostaganem">27 - Mostaganem</option>
+                    <option value="28 - M'Sila">28 - M'Sila</option>
+                    <option value="29 - Mascara">29 - Mascara</option>
+                    <option value="30 - Ouargla">30 - Ouargla</option>
+                    <option value="31 - Oran">31 - Oran</option>
+                    <option value="32 - El Bayadh">32 - El Bayadh</option>
+                    <option value="33 - Illizi">33 - Illizi</option>
+                    <option value="34 - Bordj Bou Arréridj">34 - Bordj Bou Arréridj</option>
+                    <option value="35 - Boumerdès">35 - Boumerdès</option>
+                    <option value="36 - El Tarf">36 - El Tarf</option>
+                    <option value="37 - Tindouf">37 - Tindouf</option>
+                    <option value="38 - Tissemsilt">38 - Tissemsilt</option>
+                    <option value="39 - El Oued">39 - El Oued</option>
+                    <option value="40 - Khenchela">40 - Khenchela</option>
+                    <option value="41 - Souk Ahras">41 - Souk Ahras</option>
+                    <option value="42 - Tipaza">42 - Tipaza</option>
+                    <option value="43 - Mila">43 - Mila</option>
+                    <option value="44 - Aïn Defla">44 - Aïn Defla</option>
+                    <option value="45 - Naâma">45 - Naâma</option>
+                    <option value="46 - Aïn Témouchent">46 - Aïn Témouchent</option>
+                    <option value="47 - Ghardaïa">47 - Ghardaïa</option>
+                    <option value="48 - Relizane">48 - Relizane</option>
                 </select>
             </div>
             <div class="input-group">
@@ -169,17 +219,21 @@
             </div>
         </div>
 
-        <!-- High School Name (Conditional) -->
+        <!-- High School Name (Conditional with Slide Down Animation) -->
         <div class="highschool-wrapper" id="highschoolWrapper">
             <div class="input-group">
                 <div class="label-row"><span>High School Name <span class="label-ar">اسم الثانوية</span></span></div>
-                <input type="text" id="schoolName" placeholder="e.g. Lycée Mohamed Boudiaf" style="position: relative; z-index: 2; background: rgba(255,255,255,0.9);">
+                <input type="text" id="schoolName" placeholder="e.g. Lycée Mohamed Boudiaf">
             </div>
         </div>
+    </div>
 
+    <!-- Fixed Button Wrapper -->
+    <div class="submit-btn-wrapper">
         <button type="button" class="submit-btn" id="submitBtn">Proceed to Payment</button>
     </div>
-        <script src="script.js"></script>
+
+    <script src="script.js"></script>
     <script>
         const nizamiToggle = document.getElementById('nizami');
         const highschoolWrapper = document.getElementById('highschoolWrapper');
@@ -195,6 +249,20 @@
         const shaba = document.getElementById('shaba');
         const schoolName = document.getElementById('schoolName');
 
+        // Specialty Dropdown Logic (Show English + Arabic in list, only English when picked)
+        function updateShabaDisplay() {
+            Array.from(shaba.options).forEach(opt => {
+                if (opt.value && opt.dataset.ar) {
+                    opt.text = opt.text.split(' - ')[0] + ' - ' + opt.dataset.ar; // Restore list view
+                }
+            });
+            if (shaba.selectedIndex > 0) {
+                const selected = shaba.options[shaba.selectedIndex];
+                selected.text = selected.text.split(' - ')[0]; // Show only English when picked
+            }
+        }
+        shaba.addEventListener('change', updateShabaDisplay);
+        
         // Toggle High School Field with smooth animation
         nizamiToggle.addEventListener('change', function() {
             if (this.checked) {
@@ -237,4 +305,4 @@
         });
     </script>
 </body>
-  </html>
+    </html>
