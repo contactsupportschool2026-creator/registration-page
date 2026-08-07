@@ -1254,9 +1254,3 @@ process.on('SIGINT', async () => {
     try { await bot.stopPolling(); } catch (e) {}
     process.exit(0);
 });
-
-// Force exit after 5 seconds no matter what
-setTimeout(() => {
-    console.log('⚠️ Forced exit after timeout');
-    process.exit(1);
-}, 5000);
