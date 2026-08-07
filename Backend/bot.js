@@ -1181,7 +1181,7 @@ cronJobs.push(cron.schedule('0 * * * *', async () => {
     } catch (error) {
         console.error('❌ [cron:hourly] Cannot read database, skipping run:', error.message);
         return;
-    });
+    }
 
     const now = new Date();
 
