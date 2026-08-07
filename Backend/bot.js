@@ -1239,3 +1239,16 @@ console.log('🤖 Telegram Bot is running...');
         console.error('⚠️ Could not send startup notification:', e.message);
     }
 })();
+
+// Graceful shutdown — stop polling so a new instance can take over
+process.on('SIGTERM', async () => {
+    console.log('🛑 SIGTERM received — stopping bot polling...');
+    await bot.stopPolling();
+    process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+    console.log('🛑 SIGINT received — stopping bot polling...');
+    await bot.stopPolling();
+    process.exit(0);
+});
