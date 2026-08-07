@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ø§Ù„ØªØ³Ø¬ÙŠÙ„ - Online School</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #ffffff; color: #111111; line-height: 1.6;
+            padding: 20px; display: flex; justify-content: center; min-height: 100vh;
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-container { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 20px; position: relative; z-index: 1; }
+        
+        /* Logo & Heading */
+        .header { text-align: center; margin-bottom: 10px; }
+        .header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -1px; color: #000; }
+        .header h2 { font-size: 0.9rem; font-weight: 500; color: #333; margin-top: 4px; }
+        .header p { font-size: 0.8rem; color: #888; margin-top: 2px; }
+
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .row-group { display: flex; gap: 15px; }
+        .row-group .input-group { flex: 1; }
+        
+        .label-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 500; color: #333; }
+        .label-ar { font-weight: 400; color: #888; font-size: 0.75rem; }
+        
+        input[type="text"], input[type="email"], select {
+            width: 100%; padding: 12px 14px; border: 1px solid #e0e0e0; border-radius: 10px;
+            background-color: #fafafa; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+            color: #000; outline: none; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        input[type="text"]:focus, input[type="email"]:focus, select:focus { border-color: #d0d0d0; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        input::placeholder { color: #bbb; }
+        select { appearance: none; -webkit-appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path fill="%23888" d="M0 0l5 6 5-6z"/></svg>'); background-repeat: no-repeat; background-position: right 14px center; padding-right: 30px; }
+
+        /* Toggle & High School Logic */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #fafafa; transition: all 0.3s; height: 100%; }
+        .toggle-switch { position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #e0e0e0; transition: .3s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .toggle-switch input:checked + .slider { background-color: #8a2be2; } /* Purple Bubbles theme */
+        .toggle-switch input:checked + .slider:before { transform: translateX(20px); }
+
+        .hightschool-wrapper { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease; position: relative; }
+        .hightschool-wrapper.active { max-height: 100px; opacity: 1; margin-top: -5px; }
+        /* Purple bubbles background inside the wrapper */
+        .hightschool-wrapper.active::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 10px;
+            background-image: radial-gradient(#8a2be2 15%, transparent 16%), radial-gradient(#8a2be2 15%, transparent 16%);
+            background-size: 20px 20px; background-position: 0 0, 10px 10px; opacity: 0.05; pointer-events: none;
+        }
+
+        /* Submit Button Animations */
+        .submit-btn {
+            width: 100%; padding: 15px; margin-top: 5px; background-color: #e0e0e0; color: #888;
+            border: none; border-radius: 12px; font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem; font-weight: 600; cursor: not-allowed; transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .submit-btn.active { background-color: #00C853; color: #fff; cursor: pointer; box-shadow: 0 6px 15px rgba(0, 200, 83, 0.2); animation: pulseGreen 2s infinite; }
+        .submit-btn.active:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 200, 83, 0.3); }
+        @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(0, 200, 83, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 200, 83, 0); } }
+        .submit-btn.shake { animation: shake oi\ÈİXšXËX™^šY\ŠŒÍ‹ŒËŒNKMÊH›İÈ˜XÚÙÜ›İ[™XÛÛÜˆÙ™LLÈÛÛÜˆÙ™™ÈBˆÙ^Yœ˜[Y\ÈÚZÙHÈL	KL	HÈ˜[œÙ›Ü›Nˆ˜[œÛ]V
+L\
+NÈHŒ	K	HÈ˜[œÙ›Ü›Nˆ˜[œÛ]V
+œ
+NÈHÌ	KL	KÌ	HÈ˜[œÙ›Ü›Nˆ˜[œÛ]V
+M
+NÈH	KŒ	HÈ˜[œÙ›Ü›Nˆ˜[œÛ]V
+
+NÈHB‚ˆÊˆ[ØÜ™Y[ˆØY[™È
+‹ÂˆÛØY[™Óİ™\›^HÈÜÚ][Ûˆš^YÈ[œÙ]ˆÈ˜XÚÙÜ›İ[™ˆÙ™™È\Ü^Nˆ›Û™NÈ\İYKXÛÛ[ˆÙ[\È[YÛ‹Z][\ÎˆÙ[\È›^Y\™Xİ[ÛˆÛÛ[[È‹Z[™^ˆNNNNÈØ\ˆÌÈBˆÛØY[™Óİ™\›^K˜Xİ]™HÈ\Ü^Nˆ›^ÈBˆ›ØY\‹XX˜›\ÈÈÜÚ][Ûˆ™[]]™NÈÚYˆÈZYÚˆÈBˆ›ØY\‹XX˜›\ÈÜ[ˆÈÜÚ][ÛˆXœÛÛ]NÈ›Ü™\ˆÛÛY˜[œÜ\™[È›Ü™\‹\˜Y]\ÎˆL	NÈ[š[X][ÛˆX˜›TÜ[ˆK\È[™X\ˆ[™š[š]NÈBˆ›ØY\‹XX˜›\ÈÜ[›XÚ[
+JHÈ›Ü™\‹]ÜXÛÛÜˆÎL˜™LÈ›Ü™\‹X›İÛKXÛÛÜˆÎL˜™LÈÚYˆÈZYÚˆÈBˆ›ØY\‹XX˜›\ÈÜ[›XÚ[
+ŠHÈ›Ü™\‹[YXÛÛÜˆÌÎLÎÈ›Ü™\‹\šYÚXÛÛÜˆÌÎLÎÈÚYˆŒÈZYÚˆŒÈÜˆLÈYˆLÈ[š[X][Û‹Y\˜][Ûˆ\ÎÈ[š[X][Û‹Y\™Xİ[Ûˆ™]™\œÙNÈBˆ›ØY\‹XX˜›\ÈÜ[›XÚ[
+ÊHÈ›Ü™\‹]ÜXÛÛÜˆÌMÎQ‘È›Ü™\‹X›İÛKXÛÛÜˆÌMÎQ‘ÈÚYˆÈZYÚˆÈÜˆŒÈYˆŒÈBˆÙ^Yœ˜[Y\ÈX˜›TÜ[ˆÈ	HÈ˜[œÙ›Ü›Nˆ›İ]JYÊNÈHL	HÈ˜[œÙ›Ü›Nˆ›İ]JÍŒYÊNÈHBˆ›ØY\‹]^È›Û\Ú^™Nˆ\™[NÈÛÛÜˆÌÌÌÎÈ^X[YÛˆÙ[\ÈX^]ÚYˆÌÈ›Û]ÙZYÚˆLÈBˆÜİ[O‚ÚXY‚›ÙO‚ˆKKH[ØÜ™Y[ˆØY[™Èİ™\›^HKO‚ˆ]ˆYH›ØY[™Óİ™\›^H‚ˆ]ˆÛ\ÜÏH›ØY\‹XX˜›\È‚ˆÜ[ÜÜ[Ü[ÜÜ[Ü[ÜÜ[‚ˆÙ]‚ˆ]ˆÛ\ÜÏH›ØY\‹]^–[İIÜ™H™Z[™È\™XİYÈH^[Y[YÙHÙˆÚ\™Õ[HÈÛÛ\]HH›ØÙ\ÜËÙ]‚ˆÙ]‚‚ˆ]ˆÛ\ÜÏH™›Ü›KXÛÛZ[™\ˆ‚ˆ]ˆÛ\ÜÏHšXY\ˆ‚ˆO˜XÈ	ˆ™^[Û™ÚO‚ˆ”™YÚ\İ˜][Ûˆ›Ü›OÚ‚ˆ¶)ö,ö*¶av)ö,v)ö`H6)öa6*¶,ö+6b¶aÜ‚ˆÙ]‚‚ˆKKH[˜[YH	ˆ[YÜ˜[H\Ù\›˜[YHKO‚ˆ]ˆÛ\ÜÏHœ›İËYÜ›İ\‚ˆ]ˆÛ\ÜÏHš[œ]YÜ›İ\‚ˆ]ˆÛ\ÜÏH›X™[\›İÈÜ[‘[˜[YHÜ[ˆÛ\ÜÏH›X™[X\ˆ¶)öa6)ö,öaH6)öa6`ö)öavaÜÜ[ÜÜ[Ù]‚ˆ[œ]\OH^ˆYH™[˜[YHˆXÙZÛ\H™K™ËˆZYY™[˜[Hˆ™\]Z\™Y‚ˆÙ]‚ˆ]ˆÛ\ÜÏHš[œ]YÜ›İ\‚ˆ]ˆÛ\ÜÏH›X™[\›İÈÜ[•[YÜ˜[HÜ[ˆÛ\ÜÏH›X™[X\ˆ¶*¶b¶a6b¶.¶,v)öaOÜÜ[ÜÜ[Ù]‚ˆ[œ]\OH^ˆYH[YÜ˜[U\Ù\›˜[YHˆXÙZÛ\H\Ù\›˜[YHˆ™\]Z\™Y‚ˆÙ]‚ˆÙ]‚‚ˆKKH]HÙˆš\	ˆÜXÚX[H
+Üš^›Û[
+HKO‚ˆ]ˆÛ\ÜÏHœ›İËYÜ›İ\‚ˆ]ˆÛ\ÜÏHš[œ]YÜ›İ\‚ˆ]ˆÛ\ÜÏH›X™[\›İÈÜ[‘]HÙˆš\Ü[ˆÛ\ÜÏH›X™[X\ˆ¶*¶)ö,vb¶+ˆ6)öa6avb¶a6)ö+ÏÜÜ[ÜÜ[Ù]‚ˆ[œ]\OH^ˆYH™ØˆˆXÙZÛ\H–VVVKSSKQˆX^[™İHŒLˆ™\]Z\™Y‚ˆÙ]‚ˆ]ˆÛ\ÜÏHš[œ]YÜ›İ\‚ˆ]ˆÛ\ÜÏH›X™[\›İÈÜ[”ÜXÚX[HÜ[ˆÛ\ÜÏH›X™[X\ˆ¶)öa6-6.v*6*OÜÜ[ÜÜ[Ù]‚ˆÙ[XİYHœÚX˜Hˆ™\]Z\™Y‚ˆÜ[Ûˆ˜[YOHˆˆ\ØX›YÙ[XİY”Ù[Xİ‹‹ÛÜ[Û‚ˆÜ[Ûˆ˜[YOHœØÚY[˜Ù\È^0ê\š[Y[[\È”ØÚY[˜Ù\È^ÛÜ[Û‚ˆÜ[Ûˆ˜[YOH›X]0ê[X]\]Y\È“X]ÏÛÜ[Û‚ˆÜ[Ûˆ˜[YOHXÚš\]YHX]0ê[X]\]Y\È•XÚX]ÏÛÜ[Û‚ˆÜ[Ûˆ˜[YOH™Ù\İ[Ûˆ]0êXÛÛ›ÛZYH‘XÛÛ›Û^OÛÜ[Û‚ˆÜ[Ûˆ˜[YOH›]™\È][ÜÛÜYH“]\˜]\™OÛÜ[Û‚ˆÜ[Ûˆ˜[YOH›[™İY\È0ê]˜[™Ù\ˆ“[™İXYÙ\ÏÛÜ[Û‚ˆÜ[Ûˆ˜[YOHXÚš\]YHØÚY[˜Ù\È^0ê\š[Y[[\È•XÚØÚH^ÛÜ[Û‚ˆÜ[Ûˆ˜[YOHš[™›Ü›X]\]YHÔÏÛÜ[Û‚ˆÜÙ[Xİ‚ˆÙ]‚ˆÙ]‚‚ˆKKHÚ[^XH	ˆØÚÛÛ\HÙÙÛH
+Üš^›Û[
+HKO‚ˆ]ˆÛ\ÜÏHœ›İËYÜ›İ\‚ˆ]ˆÛ\ÜÏHš[œ]YÜ›İ\‚ˆ]ˆÛ\ÜÏH›X™[\›İÈÜ[”İ]HÜ[ˆÛ\ÜÏH›X™[X\ˆ¶)öa6b6a6)öb¶*OÜÜ[ÜÜ[Ù]‚ˆÙ[XİYHÚ[^XHˆ™\]Z\™Y‚
