@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const cron        = require('node-cron');
 const axios       = require('axios');
 require('dotenv').config();
+const cronJobs = [];
 
 const { initializeDB, readDB, withDB } = require('./db');
 const { withRetry }                    = require('./retry');
@@ -1243,12 +1244,14 @@ console.log('🤖 Telegram Bot is running...');
 // Graceful shutdown — stop polling so a new instance can take over
 process.on('SIGTERM', async () => {
     console.log('🛑 SIGTERM received — stopping bot polling...');
+    cronJobs.forEach(job => job.stop());
     await bot.stopPolling();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('🛑 SIGINT received — stopping bot polling...');
+    cronJobs.forEach(job => job.stop());
     await bot.stopPolling();
     process.exit(0);
 });
