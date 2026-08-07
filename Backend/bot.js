@@ -1112,7 +1112,7 @@ function formatStudentCard(student) {
 // ==========================================
 // FEATURE 3: DAILY 8:00 AM CRON JOB (Reminders & Due Links)
 // ==========================================
-cron.schedule('0 8 * * *', async () => {
+cronJobs.push(cron.schedule('0 8 * * *', async () => {
     console.log('Running 8:00 AM subscription check...');
 
     let db;
@@ -1121,7 +1121,7 @@ cron.schedule('0 8 * * *', async () => {
     } catch (error) {
         console.error('❌ [cron:daily] Cannot read database, skipping run:', error.message);
         return;
-    }
+    });
 
     const now = new Date();
 
@@ -1172,7 +1172,7 @@ cron.schedule('0 8 * * *', async () => {
 // ==========================================
 // FEATURE 4: NON-PAYMENT ENFORCEMENT (Runs every hour)
 // ==========================================
-cron.schedule('0 * * * *', async () => {
+cronJobs.push(cron.schedule('0 * * * *', async () => {
     console.log('Running hourly check for warnings and kicks...');
 
     let db;
@@ -1181,7 +1181,7 @@ cron.schedule('0 * * * *', async () => {
     } catch (error) {
         console.error('❌ [cron:hourly] Cannot read database, skipping run:', error.message);
         return;
-    }
+    });
 
     const now = new Date();
 
