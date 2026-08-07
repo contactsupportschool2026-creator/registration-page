@@ -15,10 +15,9 @@ const SUPPORT_TEXT = `\n\n_For any issues, contact support: @${process.env.TELEG
 try {
     initializeDB();
 } catch (err) {
-    console.error('❌ FATAL: Failed to initialize database:', err.message);
-    process.exit(1);
+    console.error('❌ Bot: Failed to initialize database:', err.message);
+    return;    // ✅ Just stop the bot, don't kill the server
 }
-
 // ==========================================
 // HELPER: Check if user is admin (chat ID match only — no session check)
 // ==========================================
