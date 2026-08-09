@@ -873,13 +873,20 @@ bot.onText(/^\/addquiz$/, async (msg) => {
                 // Initialize quizScores object if it doesn't exist
                 if (!s.quizScores) s.quizScores = {}; 
                 
-                // Save the score for this specific quiz
-                s.quizScores[quizName] = quizScore;   
+                // Save the score for this specific quiz with timestamp
+                if (!s.quizScores[quizName]) s.quizScores[quizName] = [];
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-GB');
+                const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                s.quizScores[quizName].push({ score: quizScore, date: dateStr, time: timeStr });
                 
-                // Calculate cumulative score out of 100 (using average of all quizzes taken)
-                const scores = Object.values(s.quizScores);
-                const sum = scores.reduce((acc, curr) => acc + curr, 0);
-                s.score = parseFloat((sum / scores.length).toFixed(2)); // Average score out of 100
+                // Calculate cumulative score out of 100 (using average of all quiz scores)
+                const allScores = [];
+                Object.values(s.quizScores).forEach(attempts => {
+                    attempts.forEach(a => allScores.push(a.score));
+                });
+                const sum = allScores.reduce((acc, curr) => acc + curr, 0);
+                s.score = parseFloat((sum / allScores.length).toFixed(2)); // Average score out of 100
             }
         });
 
