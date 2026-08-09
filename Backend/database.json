@@ -177,6 +177,10 @@
     "invoiceId": "01kzkcme3gqd8q92ys6aznbphh",
     "warnedTimestamp": null,
     "linkSentTimestamp": null,
-    "renewalCount": 0
+    "renewalCount": 0,
+    "quizScores": {
+      "I Wish": 57.14
+    },
+    "score": 57.14
   }
 ]
