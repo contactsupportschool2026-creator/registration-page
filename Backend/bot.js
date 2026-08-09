@@ -873,20 +873,24 @@ bot.onText(/^\/addquiz$/, async (msg) => {
                 // Initialize quizScores object if it doesn't exist
                 if (!s.quizScores) s.quizScores = {}; 
                 
-                // Save the score for this specific quiz with timestamp
-                if (!s.quizScores[quizName]) s.quizScores[quizName] = [];
+                // Initialize quizScores array if it doesn't exist
+                if (!s.quizScores) s.quizScores = [];
+                
+                // Add or replace this quiz's score with timestamp
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('en-GB');
                 const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-                s.quizScores[quizName].push({ score: quizScore, date: dateStr, time: timeStr });
                 
-                // Calculate cumulative score out of 100 (using average of all quiz scores)
-                const allScores = [];
-                Object.values(s.quizScores).forEach(attempts => {
-                    attempts.forEach(a => allScores.push(a.score));
-                });
-                const sum = allScores.reduce((acc, curr) => acc + curr, 0);
-                s.score = parseFloat((sum / allScores.length).toFixed(2)); // Average score out of 100
+                const existingIdx = s.quizScores.findIndex(q => q.name === quizName);
+                if (existingIdx !== -1) {
+                    s.quizScores[existingIdx] = { name: quizName, score: quizScore, date: dateStr, time: timeStr };
+                } else {
+                    s.quizScores.push({ name: quizName, score: quizScore, date: dateStr, time: timeStr });
+                }
+                
+                // Calculate average score out of 100
+                const sum = s.quizScores.reduce((acc, q) => acc + q.score, 0);
+                s.score = parseFloat((sum / s.quizScores.length).toFixed(2));
             }
         });
 
@@ -1096,15 +1100,12 @@ function formatStudentCard(student) {
     const nizamiText = student.isNizami ? 'نظامي' : 'حر';
     const scoreText = student.score != null ? `${student.score}/100` : 'N/A';
     
-    // Build quiz history string
+    // Build quiz history
     let quizText = 'N/A';
-    if (student.quizScores && Object.keys(student.quizScores).length > 0) {
-        const lines = [];
-        Object.entries(student.quizScores).forEach(([quizName, attempts]) => {
-            attempts.forEach(a => {
-                lines.push(`  • ${quizName}: ${a.score}/100 (${a.date} ${a.time})`);
-            });
-        });
+    if (student.quizScores && student.quizScores.length > 0) {
+        const lines = student.quizScores.map(q => 
+            `  • *${q.name}*: ${q.score}/100 (${q.date} ${q.time})`
+        );
         quizText = '\n' + lines.join('\n');
     }
     
@@ -1120,7 +1121,7 @@ function formatStudentCard(student) {
 *School Type:* ${nizamiText}
 *School Name:* ${student.schoolName}
 
-📊 *Total Score:* ${scoreText}
+📊 *Average Score:* ${scoreText}
 📝 *Quiz History:* ${quizText}
 
 💳 *Payment Info*
