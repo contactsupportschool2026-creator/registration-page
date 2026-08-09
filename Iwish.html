@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>I Wish - English Quiz</title>
     
-    <!-- Elegant Coding Font -->
+    <!-- Elegant Coding Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
@@ -19,8 +19,8 @@
             --card-bg: rgba(0, 0, 0, 0.02);
             --border-radius: 16px;
             --transition-speed: 0.3s;
-            --correct-color: rgba(0, 200, 0, 0.4);
-            --wrong-color: rgba(255, 50, 50, 0.4);
+            --correct-color: rgba(0, 200, 0, 0.8);
+            --wrong-color: rgba(255, 50, 50, 0.8);
         }
 
         * {
@@ -38,6 +38,17 @@
             align-items: center;
             min-height: 100vh;
             padding: 20px;
+        }
+
+        /* Fixed Top Left Logo - Shadow Removed */
+        .quiz-logo {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            width: 50px;
+            height: auto;
+            border-radius: 8px;
+            z-index: 100;
         }
 
         .app-container {
@@ -89,20 +100,30 @@
             color: #333;
         }
 
-        input[type="text"] {
+        input[type="text"], textarea {
             width: 100%;
             padding: 12px 16px;
             background: #fff;
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: 12px;
-            font-family: 'Fira Code', monospace;
             font-size: 0.9rem;
             outline: none;
             transition: border var(--transition-speed);
         }
 
-        input[type="text"]:focus {
+        input[type="text"]:focus, textarea:focus {
             border: 1px solid rgba(0,0,0,0.3);
+        }
+
+        /* Unique Answer Text Area */
+        textarea#answer-input {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.1rem;
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.5;
+            color: #000;
         }
 
         .btn {
@@ -161,35 +182,60 @@
             transition: opacity 0.3s ease;
         }
 
-        /* Bubble Animations */
-        .bubble {
+        /* Progress Map */
+        .progress-map {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .progress-dot {
+            flex: 1;
+            height: 6px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 3px;
+            transition: background 0.4s ease, transform 0.3s ease;
+        }
+        .progress-dot.correct {
+            background: var(--correct-color);
+            transform: scaleY(1.5);
+        }
+        .progress-dot.wrong {
+            background: var(--wrong-color);
+            transform: scaleY(1.5);
+        }
+
+        /* Floating Bubbles Animation */
+        .bubble-container {
             position: absolute;
             left: 50%;
-            top: 50%;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
+            bottom: 80px; /* Originate near the submit button */
+            transform: translateX(-50%);
             pointer-events: none;
             z-index: 1000;
+            display: flex;
+            gap: 8px;
+        }
+
+        .floating-bubble {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
             opacity: 0;
-            transform: translate(-50%, -50%) scale(0.2);
-            animation: bubblePop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            animation: floatUp 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-
-        .bubble.correct {
+        .floating-bubble.correct {
             background: var(--correct-color);
-            border: 2px solid rgba(0, 200, 0, 0.6);
+            border: 1px solid rgba(0, 200, 0, 1);
         }
-
-        .bubble.wrong {
+        .floating-bubble.wrong {
             background: var(--wrong-color);
-            border: 2px solid rgba(255, 50, 50, 0.6);
+            border: 1px solid rgba(255, 50, 50, 1);
         }
 
-        @keyframes bubblePop {
-            0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
-            50% { opacity: 0.8; }
-            100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(-120px) scale(1.5); opacity: 0; }
         }
 
         .final-score {
@@ -208,6 +254,9 @@
 </head>
 <body>
 
+    <!-- Fixed Top Left Logo -->
+    <img src="https://z-cdn-media.chatglm.cn/files/5f949e08-41c3-44b1-a1cf-2cbfd950002b.jpg?auth_key=1886303939-733a7e28613a47178d98e0cf9091e354-0-6c02629f9611b3d36d81edfcf4897c35" alt="Logo" class="quiz-logo">
+
     <div class="app-container">
         
         <!-- START SCREEN -->
@@ -223,6 +272,9 @@
 
         <!-- QUIZ SCREEN -->
         <div id="quiz-screen" class="screen">
+            <!-- Progress Map -->
+            <div class="progress-map" id="progress-map"></div>
+
             <div style="display: flex; justify-content: center; align-items: center;">
                 <span id="question-counter" style="font-size: 0.8rem; font-weight: 600;">Question 1/7</span>
             </div>
@@ -233,7 +285,7 @@
 
             <div>
                 <label for="answer-input" id="sentence-b-label"></label>
-                <input type="text" id="answer-input" placeholder="Type your answer here...">
+                <textarea id="answer-input" placeholder="Type your full answer here..."></textarea>
             </div>
 
             <div class="feedback-area" id="feedback-area"></div>
@@ -257,10 +309,7 @@
         // ==========================================
         // TELEGRAM BOT CONFIGURATION
         // ==========================================
-        // 1. PASTE YOUR TELEGRAM BOT API TOKEN HERE:
         const TELEGRAM_BOT_TOKEN = '8600205409:AAHxFVkLuoTL5pKoZOBkhK5spfomJv5zHzQ'; 
-        
-        // 2. PASTE YOUR TELEGRAM CHAT ID HERE:
         const TELEGRAM_CHAT_ID = '7969710102'; 
         // ==========================================
 
@@ -268,37 +317,57 @@
             {
                 sentenceA: '1.a. John regrets having uploaded a video onto You Tube without the consent of its owner',
                 sentenceBLabel: '1.b. He wishes...',
-                answer: 'he had not uploaded a video onto You Tube without the consent of its owner'
+                acceptableAnswers: [
+                    'he had not uploaded a video onto youtube without the consent of its owner',
+                    'he had not uploaded a video onto You Tube without the consent of its owner'
+                ]
             },
             {
                 sentenceA: "2.a. I regret that counterfeiters don't respect laws.",
                 sentenceBLabel: '2.b. I wish...',
-                answer: 'counterfeiters respected laws'
+                acceptableAnswers: [
+                    'counterfeiters respected laws',
+                    'counterfeiters would respect laws'
+                ]
             },
             {
                 sentenceA: '3.a. I regret that the authorities did not adopt serious measures to stop migrant smuggling and human trafficking.',
                 sentenceBLabel: '3.b. I wish the authorities...',
-                answer: 'had adopted serious measures to stop migrant smuggling and human trafficking'
+                acceptableAnswers: [
+                    'had adopted serious measures to stop migrant smuggling and human trafficking'
+                ]
             },
             {
                 sentenceA: '4.a. I have a strong desire that all governments ban nepotism in private and public companies',
                 sentenceBLabel: '4.b. I wish...',
-                answer: 'all governments banned nepotism in private and public companies'
+                acceptableAnswers: [
+                    'all governments banned nepotism in private and public companies',
+                    'all governments would ban nepotism in private and public companies'
+                ]
             },
             {
                 sentenceA: '5.a. Unfortunately, the "Wasta" is spread in the Arab world.',
                 sentenceBLabel: '5.b. I wish...',
-                answer: 'the "Wasta" were not spread in the Arab world'
+                acceptableAnswers: [
+                    'wasta were not spread in the Arab world',
+                    'the wasta was not spread in the Arab world',
+                    'wasta was not spread in the Arab world'
+                ]
             },
             {
                 sentenceA: '6.a. Our country should have implemented strict principles on piracy.',
                 sentenceBLabel: '6.b. I wish...',
-                answer: 'our country had implemented strict principles on piracy'
+                acceptableAnswers: [
+                    'our country had implemented strict principles on piracy'
+                ]
             },
             {
                 sentenceA: '7.a. Businessmen exploit children.',
                 sentenceBLabel: '7.b. If only...',
-                answer: "businessmen didn't exploit children"
+                acceptableAnswers: [
+                    'businessmen did not exploit children',
+                    'businessmen would not exploit children'
+                ]
             }
         ];
 
@@ -322,51 +391,114 @@
         const resultMessage = document.getElementById('result-message');
         const telegramStatus = document.getElementById('telegram-status');
         const appContainer = document.querySelector('.app-container');
+        const progressMap = document.getElementById('progress-map');
 
         // State Variables
         let currentQuestionIndex = 0;
         let score = 0;
         let studentUsername = '';
 
-        // Helper function to normalize text for fair checking
+        // Build Progress Map
+        function buildProgressMap() {
+            progressMap.innerHTML = '';
+            for(let i = 0; i < quizData.length; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'progress-dot';
+                progressMap.appendChild(dot);
+            }
+        }
+
+        // Normalize text
         function normalizeText(text) {
             return text.toLowerCase()
-                       .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "")
-                       .replace(/\s{2,}/g, " ")
-                       .trim();
+                .replace(/\bhad not\b/g, "hadnt")
+                .replace(/\bdid not\b/g, "didnt")
+                .replace(/\bshould not\b/g, "shouldnt")
+                .replace(/\bwere not\b/g, "werent")
+                .replace(/\bwas not\b/g, "wasnt")
+                .replace(/\bcould not\b/g, "couldnt")
+                .replace(/\bwould not\b/g, "wouldnt")
+                .replace(/\bought not to\b/g, "oughtntto")
+                .replace(/\bhad better not\b/g, "hadbetternot")
+                .replace(/hadn['’]t/g, "hadnt")
+                .replace(/didn['’]t/g, "didnt")
+                .replace(/shouldn['’]t/g, "shouldnt")
+                .replace(/weren['’]t/g, "werent")
+                .replace(/wasn['’]t/g, "wasnt")
+                .replace(/couldn['’]t/g, "couldnt")
+                .replace(/wouldn['’]t/g, "wouldnt")
+                .replace(/you tube/gi, "youtube")
+                .replace(/[""''""]/g, "")       
+                .replace(/[.,/#!$%^&*;:{}=_`~()@?\[\]]/g, "")
+                .replace(/\b(the|a|an)\b/g, "") 
+                .replace(/\s{2,}/g, " ")
+                .trim();
         }
 
-        // Bubble Animation Generator
+        // Levenshtein distance
+        function levenshtein(a, b) {
+            if (a === b) return 0;
+            const m = a.length, n = b.length;
+            if (m === 0) return n;
+            if (n === 0) return m;
+            let prev = Array.from({ length: n + 1 }, (_, i) => i);
+            let curr = new Array(n + 1);
+            for (let i = 1; i <= m; i++) {
+                curr[0] = i;
+                for (let j = 1; j <= n; j++) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+                }
+                [prev, curr] = [curr, prev];
+            }
+            return prev[n];
+        }
+
+        // Check if student answer matches
+        function isAnswerCorrect(userText, acceptableAnswers) {
+            const normalized = normalizeText(userText);
+            for (const ans of acceptableAnswers) {
+                const normAns = normalizeText(ans);
+                if (levenshtein(normalized, normAns) <= 2) return true;
+            }
+            return false;
+        }
+
+        // High-Quality Floating Bubbles Generator
         function createBubble(isCorrect) {
-            const bubble = document.createElement('div');
-            bubble.className = `bubble ${isCorrect ? 'correct' : 'wrong'}`;
-            appContainer.appendChild(bubble);
+            const bubbleContainer = document.createElement('div');
+            bubbleContainer.className = 'bubble-container';
             
-            // Remove bubble from DOM after animation finishes
+            for(let i = 0; i < 8; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = `floating-bubble ${isCorrect ? 'correct' : 'wrong'}`;
+                bubble.style.animationDelay = `${i * 0.05}s`;
+                bubbleContainer.appendChild(bubble);
+            }
+
+            appContainer.appendChild(bubbleContainer);
+            
             setTimeout(() => {
-                bubble.remove();
-            }, 800);
+                bubbleContainer.remove();
+            }, 1500);
         }
 
-            // Start Quiz Logic
+        // Start Quiz Logic
         startBtn.addEventListener('click', async () => {
             if(usernameInput.value.trim() === '') {
                 alert('Please enter your Telegram username to start.');
                 return;
             }
             
-            // Format username to ensure it starts with '@'
             studentUsername = usernameInput.value.trim();
             if (!studentUsername.startsWith('@')) {
                 studentUsername = '@' + studentUsername;
             }
 
-            // Disable button while we check the database
             startBtn.disabled = true;
             startBtn.textContent = 'Checking username...';
 
             try {
-                // Verify username against the database via server.js API
                 const response = await fetch(`/api/check-username?username=${encodeURIComponent(studentUsername)}`);
                 const data = await response.json();
                 
@@ -383,11 +515,11 @@
                 return;
             }
 
-            // Re-enable button and start quiz
             startBtn.disabled = false;
             startBtn.textContent = 'Start Quiz';
             startScreen.classList.remove('active');
             quizScreen.classList.add('active');
+            buildProgressMap(); // Initialize progress map
             loadQuestion();
         });
 
@@ -416,17 +548,21 @@
                 return;
             }
 
-            const correctAnswer = quizData[currentQuestionIndex].answer;
-            const isCorrect = normalizeText(userAnswer) === normalizeText(correctAnswer);
+            const acceptableAnswers = quizData[currentQuestionIndex].acceptableAnswers;
+            const isCorrect = isAnswerCorrect(userAnswer, acceptableAnswers);
 
             createBubble(isCorrect);
 
+            // Update Progress Map
+            const dots = document.querySelectorAll('.progress-dot');
             if(isCorrect) {
-                score++; // Score updates silently in the background
+                score++;
+                dots[currentQuestionIndex].classList.add('correct');
                 feedbackArea.textContent = 'Correct! Well done.';
                 feedbackArea.style.color = 'green';
             } else {
-                feedbackArea.textContent = `Wrong. Correct answer: "${correctAnswer}"`;
+                dots[currentQuestionIndex].classList.add('wrong');
+                feedbackArea.textContent = `Wrong. Correct answer: "${acceptableAnswers[0]}"`;
                 feedbackArea.style.color = 'red';
             }
 
@@ -450,7 +586,7 @@
         function showResults() {
             quizScreen.classList.remove('active');
             resultScreen.classList.add('active');
-            finalScore.textContent = `${score}/${quizData.length}`; // Score revealed only here
+            finalScore.textContent = `${score}/${quizData.length}`;
             
             if(score >= 5) {
                 resultMessage.textContent = 'Excellent work! You mastered "I Wish".';
@@ -460,23 +596,18 @@
                 resultMessage.textContent = 'Needs improvement. Review the rules and try again!';
             }
 
-            // Trigger Telegram API
             sendToTelegram();
         }
 
         // Telegram Integration Logic
         async function sendToTelegram() {
-            // Prevent sending if developer hasn't added credentials yet
             if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE' || TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID_HERE') {
                 telegramStatus.textContent = 'Teacher needs to setup Telegram Bot credentials.';
                 telegramStatus.style.color = 'red';
                 return;
             }
 
-            // Calculate score out of 100 with 2 decimal places
             const percentageScore = ((score / quizData.length) * 100).toFixed(2);
-            
-            // Format message specifically for the /addquiz bot command to read
             const message = `📝 *New Quiz Result*\n\n` +
                             `Quiz: I Wish | Username: ${studentUsername} | Score: ${percentageScore}`;
             
@@ -485,9 +616,7 @@
             try {
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chat_id: TELEGRAM_CHAT_ID,
                         text: message,
@@ -503,12 +632,10 @@
                 } else {
                     telegramStatus.textContent = '⚠️ Error sending score. Please inform your teacher.';
                     telegramStatus.style.color = 'red';
-                    console.error('Telegram API Error:', data);
                 }
             } catch (error) {
                 telegramStatus.textContent = '⚠️ Network error. Could not send score.';
                 telegramStatus.style.color = 'red';
-                console.error('Fetch Error:', error);
             }
         }
 
@@ -526,4 +653,4 @@
 
     </script>
 </body>
-  </html>
+</html>
