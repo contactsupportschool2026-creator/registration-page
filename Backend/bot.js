@@ -1095,6 +1095,19 @@ async function handleExtendQuery(chatId, text) {
 function formatStudentCard(student) {
     const nizamiText = student.isNizami ? 'نظامي' : 'حر';
     const scoreText = student.score != null ? `${student.score}/100` : 'N/A';
+    
+    // Build quiz history string
+    let quizText = 'N/A';
+    if (student.quizScores && Object.keys(student.quizScores).length > 0) {
+        const lines = [];
+        Object.entries(student.quizScores).forEach(([quizName, attempts]) => {
+            attempts.forEach(a => {
+                lines.push(`  • ${quizName}: ${a.score}/100 (${a.date} ${a.time})`);
+            });
+        });
+        quizText = '\n' + lines.join('\n');
+    }
+    
     return `
 👤 *Student Details*
 
@@ -1107,7 +1120,8 @@ function formatStudentCard(student) {
 *School Type:* ${nizamiText}
 *School Name:* ${student.schoolName}
 
-📊 *Score:* ${scoreText}
+📊 *Total Score:* ${scoreText}
+📝 *Quiz History:* ${quizText}
 
 💳 *Payment Info*
 *Status:* ${student.status}
@@ -1119,7 +1133,6 @@ function formatStudentCard(student) {
 *Chat ID:* ${student.chatId || 'Not linked'}
 `;
 }
-
 // ==========================================
 // FEATURE 3: DAILY 8:00 AM CRON JOB (Reminders & Due Links)
 // ==========================================
