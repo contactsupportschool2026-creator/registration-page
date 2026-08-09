@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Helper to log frontend errors to your Telegram bot
     async function logToTelegram(message) {
         try {
-            await fetch('https://registration-page-production.up.railway.app/api/log-error', {
+            await fetch('https://registration-page-9888765.onrender.com/api/log-error', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: message })
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.textContent = 'Processing...';
 
         try {
-            const response = await fetch('https://registration-page-production.up.railway.app/api/create-checkout', {
+            const response = await fetch('https://registration-page-9888765.onrender.com/api/create-checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
