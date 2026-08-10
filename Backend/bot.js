@@ -116,9 +116,11 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id.toString();
     const text   = (msg.text || '').trim();
 
+    // ── Ignore ALL messages from groups (only handle private chats) ───────────
+    if (msg.chat.type === 'group' || msg.chat.type === 'supergroup') return;
+
     // ── Exempt: student onboarding link (/start <invoiceId>) ────────────────
     if (/^\/start\s+\S+/.test(text)) return;
-
     // ── If user has an active score prompt ──
     if (pendingScoreQueries.has(chatId)) {
         return handleScoreQuery(chatId, text);
