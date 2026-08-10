@@ -128,6 +128,26 @@ app.get('/api/check-username', async (req, res) => {
     }
 });
 
+// ==========================================
+// API: Send Quiz Result to Telegram (Used by Advice & IWish quizzes)
+// ==========================================
+app.post('/api/send-quiz-result', async (req, res) => {
+    try {
+        const { quizName, username, score } = req.body;
+        if (!quizName || !username || score === undefined) {
+            return res.status(400).json({ success: false, error: 'Missing fields' });
+        }
+
+        const message = `📝 *New Quiz Result*\n\nQuiz: ${quizName} | Username: ${username} | Score: ${score}`;
+        await telegramNotify(message);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Send Quiz Result Error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to send result' });
+    }
+});
+
 app.get('/api/debug/env', (req, res) => {
     res.json({
         has_chargily_key: Boolean(process.env.CHARGILY_SECRET_KEY_2),
