@@ -849,8 +849,8 @@ bot.onText(/^\/addquiz$/, async (msg) => {
 
     const originalText = msg.reply_to_message.text || '';
     
-    // We expect the message format to be: Quiz: <Name> | Username: <@username> | Score: <Number>
-    const match = originalText.match(/Quiz:\s*(.+?)\s*\|\s*Username:\s*(@?\w+)\s*(?:\|\s*Date:\s*[\d\/]+\s*(?:\|\s*Time:\s*[\d:]+\s*)?)?\|\s*Score:\s*([\d.]+)/i);
+    // Match: Quiz: <Name> | Username: <@user> [ | Date: <dd/mm/yyyy> [ | Time: <HH:MM> ]] | Score: <num>
+    const match = originalText.match(/Quiz:\s*(.+?)\s*\|\s*Username:\s*(@?\w+)\s*(?:\|\s*Date:\s*([\d\/]+))?\s*(?:\|\s*Time:\s*([\d:]+))?\s*\|\s*Score:\s*([\d.]+)/i);
     
     if (!match) {
         return safeSend(chatId, '❌ Could not parse the message. Ensure the format is:\n`Quiz: <Name> | Username: <@username> | Score: <Score>`', { parse_mode: 'Markdown' });
@@ -858,8 +858,10 @@ bot.onText(/^\/addquiz$/, async (msg) => {
 
     const quizName = match[1].trim();
     const rawUsername = match[2].trim();
-    const usernameToFind = rawUsername.replace('@', '').toLowerCase(); // remove @ for matching
-    const quizScore = parseFloat(match[3]);
+    const usernameToFind = rawUsername.replace('@', '').toLowerCase();
+    const msgDate = match[3] || null;   // optional date from the message
+    const msgTime = match[4] || null;   // optional time from the message
+    const quizScore = parseFloat(match[5]);
 
     try {
         const db = await readDB();
@@ -872,16 +874,13 @@ bot.onText(/^\/addquiz$/, async (msg) => {
         await withDB(db2 => {
             const s = db2.find(x => x.invoiceId === student.invoiceId);
             if (s) {
-                // Initialize quizScores object if it doesn't exist
-                if (!s.quizScores) s.quizScores = {}; 
-                
                 // Initialize quizScores array if it doesn't exist
-                if (!s.quizScores) s.quizScores = [];
+                if (!s.quizScores || typeof s.quizScores === 'object' && !Array.isArray(s.quizScores)) s.quizScores = [];
                 
-                // Add or replace this quiz's score with timestamp
+                // Use date/time from the quiz message if available, otherwise use current time
                 const now = new Date();
-                const dateStr = now.toLocaleDateString('en-GB');
-                const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                const dateStr = msgDate || now.toLocaleDateString('en-GB');
+                const timeStr = msgTime || now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
                 
                 const existingIdx = s.quizScores.findIndex(q => q.name === quizName);
                 if (existingIdx !== -1) {
@@ -895,7 +894,6 @@ bot.onText(/^\/addquiz$/, async (msg) => {
                 s.score = parseFloat((sum / s.quizScores.length).toFixed(2));
             }
         });
-
         await safeSend(
             chatId,
             `✅ *Quiz Score Recorded*\n\n*Student:* ${student.fullName}\n*Quiz:* ${quizName}\n*Score:* ${quizScore}\n\n📊 *Updated Total Score:* ${student.score}/100`,
