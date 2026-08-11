@@ -138,7 +138,9 @@ app.post('/api/send-quiz-result', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing fields' });
         }
 
-        const message = `📝 *New Quiz Result*\n\nQuiz: ${quizName} | Username: ${username} | Score: ${score}`;
+        const datePart = req.body.date ? ` | Date: ${req.body.date}` : '';
+        const timePart = req.body.time ? ` | Time: ${req.body.time}` : '';
+        const message = `📝 *New Quiz Result*\n\nQuiz: ${quizName} | Username: ${username}${datePart}${timePart} | Score: ${score}`;
         await telegramNotify(message);
 
         res.json({ success: true });
