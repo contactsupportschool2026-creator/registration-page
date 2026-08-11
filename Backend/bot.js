@@ -850,7 +850,7 @@ bot.onText(/^\/addquiz$/, async (msg) => {
     const originalText = msg.reply_to_message.text || '';
     
     // We expect the message format to be: Quiz: <Name> | Username: <@username> | Score: <Number>
-    const match = originalText.match(/Quiz:\s*(.+?)\s*\|\s*Username:\s*(@?\w+)\s*\|\s*Score:\s*([\d.]+)/i);
+    const match = originalText.match(/Quiz:\s*(.+?)\s*\|\s*Username:\s*(@?\w+)\s*(?:\|\s*Date:\s*[\d\/]+\s*(?:\|\s*Time:\s*[\d:]+\s*)?)?\|\s*Score:\s*([\d.]+)/i);
     
     if (!match) {
         return safeSend(chatId, '❌ Could not parse the message. Ensure the format is:\n`Quiz: <Name> | Username: <@username> | Score: <Score>`', { parse_mode: 'Markdown' });
