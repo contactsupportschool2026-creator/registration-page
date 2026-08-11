@@ -354,51 +354,39 @@ function showResults() {
     sendToTelegram(percentageScore);
 }
 
-// Telegram Integration Logic
+// Telegram Integration Logic (uses backend API — no tokens exposed)
 async function sendToTelegram(percentageScore) {
     const telegramStatus = document.getElementById('telegram-status');
-    
-    if (TELEGRAM_BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE' || TELEGRAM_CHAT_ID === 'YOUR_CHAT_ID_HERE') {
-        telegramStatus.textContent = 'Teacher needs to setup Telegram Bot credentials.';
-        telegramStatus.style.color = 'red';
-        return;
-    }
 
-    // Get Current Date and Time
     const now = new Date();
-    const dateStr = now.toLocaleDateString('en-GB'); // DD/MM/YYYY
-    const timeStr = now.toLocaleTimeString('en-GB'); // HH:MM:SS
+    const dateStr = now.toLocaleDateString('en-GB');
+    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-    const message = `📝 *New Quiz Result*\n\n` +
-                    `Quiz: English Test 1032 | Username: ${studentUsername} | Date: ${dateStr} | Time: ${timeStr} | Score: ${percentageScore}`;
-    
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    
     try {
-        const response = await fetch(url, {
+        const response = await fetch('/api/send-quiz-result', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                chat_id: TELEGRAM_CHAT_ID,
-                text: message,
-                parse_mode: 'Markdown'
+                quizName: 'English Test 1032',
+                username: studentUsername,
+                score: percentageScore,
+                date: dateStr,
+                time: timeStr
             })
         });
 
         const data = await response.json();
 
-        if (data.ok) {
+        if (data.success) {
             telegramStatus.textContent = '✅ Score sent to your teacher successfully!';
             telegramStatus.style.color = 'green';
         } else {
             telegramStatus.textContent = '⚠️ Error sending score. Please inform your teacher.';
             telegramStatus.style.color = 'red';
-            console.error('Telegram API Error:', data);
         }
     } catch (error) {
         telegramStatus.textContent = '⚠️ Network error. Could not send score.';
         telegramStatus.style.color = 'red';
-        console.error('Fetch Error:', error);
     }
 }
 
