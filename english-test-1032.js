@@ -1,9 +1,3 @@
-// ==========================================
-// TELEGRAM BOT CONFIGURATION
-// ==========================================
-const TELEGRAM_BOT_TOKEN = '8600205409:AAHxFVkLuoTL5pKoZOBkhK5spfomJv5zHzQ'; 
-const TELEGRAM_CHAT_ID = '7969710102'; 
-// ==========================================
 
 let studentUsername = '';
 let currentStep = 0;
