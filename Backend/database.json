@@ -178,10 +178,15 @@
     "warnedTimestamp": null,
     "linkSentTimestamp": null,
     "renewalCount": 0,
-    "quizScores": {
-      "I Wish": 57.14
-    },
-    "score": 57.14
+    "quizScores": [
+      {
+        "name": "English Test 1032",
+        "score": 100,
+        "date": "12/08/2026",
+        "time": "00:01"
+      }
+    ],
+    "score": 100
   },
   {
     "fullName": "Nsjsheuwjwhw",
