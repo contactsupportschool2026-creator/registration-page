@@ -1,1 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Comprehension - English Test 1032</title>
+    
+    <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="english-test-1032.css">
+</head>
+<body>
+
+    <!-- Fixed Top Left Logo -->
+    <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
+
+    <div class="app-container">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <h1>Reading Comprehension</h1>
+            <p>Read the text carefully and answer the questions. You will see your score only at the end of the test.</p>
+            <div>
+                <label for="telegram-user">Enter your Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username" required>
+            </div>
+            <button class="btn btn-primary" id="start-btn">Start Test</button>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <!-- Persistent Text Panel -->
+            <div class="text-panel">
+                <h2>Part One: Reading (15 pts)</h2>
+                <p>Ethical employees are those who make decisions in the best interest of their employers, co-workers and outside stakeholders in addition to themselves. Workplace ethics centre on such diverse issues as discrimination, fraud, theft and harassment. Although all people are intrinsically valuable, ethical employees can actually be more financially valuable to their employers, and more valued by co-workers and peers.</p>
+                <p>Understanding how ethics can make you a better person in the workplace is a solid starting point for a commitment to always doing the right thing. Therefore, gaining the trust of your co-workers can enhance your productivity by making it easier for you to communicate and work with others in the workplace.</p>
+                <p>Employees who spread distrust can meet resistance when seeking help from others, but trusted co-workers can always find a helping hand. Gaining the trust of their managers can open doors to workers for new responsibilities at work, possibly leading to promotions and pay raise.</p>
+                <p class="text-ref">Adapted from https://smallbusiness.chron.com/ethics-</p>
+            </div>
+
+            <!-- Progress Map -->
+            <div class="progress-map" id="progress-map">
+                <div class="progress-dot active"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+            </div>
+
+            <!-- Dynamic Question Container -->
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content">
+                    <!-- Questions injected by JS -->
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
+                    <button class="btn btn-primary" id="next-btn">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <h1>Test Finished!</h1>
+            <p id="result-message">Calculating your results...</p>
+            <div class="final-score" id="final-score">0/100</div>
+            
+            <div class="score-breakdown" id="score-breakdown">
+                <!-- Breakdown injected by JS -->
+            </div>
+
+            <p class="telegram-placeholder" id="telegram-status">Sending your score to your teacher...</p>
+            <button class="btn btn-primary" id="restart-btn">Retake Test</button>
+        </div>
+
+    </div>
+
+    <!-- Custom JS -->
+    <script src="english-test-1032.js"></script>
+</body>
+</html>
