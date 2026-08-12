@@ -11,12 +11,12 @@ let userAnswers = {
 const quizData = [
     {
         type: 'mcq-single',
-        title: '1- The text is a taken from : (0,5 pt)',
+        title: '1- The text is a taken from',
         options: ['a: a web site.', 'b: a book extract.', 'c: a news paper article.']
     },
     {
         type: 'tf-group',
-        title: '2- Say whether the statements are true or false. Write T or F next to the statements. (2 pts)',
+        title: '2- Say whether the statements are true or false. Write T or F next to the statements.',
         questions: [
             { id: '2a', text: 'a. Corruption affects the poor the most.' },
             { id: '2b', text: 'b. People can be asked for a bribe in order to have health care.' },
@@ -26,7 +26,7 @@ const quizData = [
     },
     {
         type: 'text-group',
-        title: '3- Answer the following questions according to the text. (3 points)',
+        title: '3- Answer the following questions according to the text.',
         questions: [
             { id: '3a', text: 'a. What unethical behaviours are committed by the medical staff ?' },
             { id: '3b', text: 'b. How can governments fight funds disappearance ?' },
@@ -37,14 +37,14 @@ const quizData = [
         type: 'para-match-group',
         title: '4. In which paragraph are the following ideas mentioned',
         questions: [
-            { id: '4a', text: 'a: health workers should be well paid in order to stop bribery . (1 point)' },
+            { id: '4a', text: 'a: health workers should be well paid in order to stop bribery.' },
             { id: '4b', text: 'b: some patient’s families give bribery to treat their relative.' }
         ],
         options: ['1', '2', '3', '4']
     },
     {
         type: 'text-group',
-        title: '5. What or who do the underlined words refer to in the text? (0,5 pt)',
+        title: '5. What or who do the underlined words refer to in the text?',
         questions: [
             { id: '5a', text: 'a) who (§2) ………' },
             { id: '5b', text: 'b) we (§4) ………' }
