@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Comprehension - Business Ethics</title>
+    
+    <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="english-test-1034.css">
+</head>
+<body>
+
+    <!-- Fixed Top Left Logo -->
+    <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
+
+    <div class="app-container">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <h1>Reading Comprehension</h1>
+            <p>Read the text carefully and answer the questions. You will see your score only at the end of the test.</p>
+            <div>
+                <label for="telegram-user">Enter your Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username" required>
+            </div>
+            <button class="btn btn-primary" id="start-btn">Start Test</button>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <!-- Persistent Text Panel -->
+            <div class="text-panel">
+                <h2>Ethics in Business</h2>
+                <p>In today's competitive world, many companies are under pressure to make profits. However, focusing only on financial success can sometimes lead to unethical behavior. Business ethics is the study of what is right and wrong in the world of commerce. It helps companies act responsibly and fairly.</p>
+                <p>Ethical businesses consider the impact of their decisions on employees, customers, and the environment. For example, some companies ensure fair wages and safe working conditions for their workers. Others choose not to pollute or exploit natural resources, even if doing so would increase profits.</p>
+                <p>Unethical practices, such as false advertising, bribery, or using cheap labor in unsafe conditions, can damage a company’s reputation and lead to legal consequences. On the other hand, ethical companies often gain the trust of consumers and build long-term success.</p>
+                <p>In conclusion, ethics in business is not just about following laws. It is about doing what is right—even when no one is watching. Businesses that make ethical choices contribute positively to society and the economy.</p>
+                <p class="text-ref">Adapted from Crane, A., & Matten, D. (2016). Business Ethics: Managing Corporate Citizenship and Sustainability in the Age of Globalization (4th ed.). Oxford University Press.</p>
+            </div>
+
+            <!-- Progress Map (5 dots for 5 questions) -->
+            <div class="progress-map" id="progress-map">
+                <div class="progress-dot active"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+            </div>
+
+            <!-- Dynamic Question Container -->
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content">
+                    <!-- Questions injected by JS -->
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
+                    <button class="btn btn-primary" id="next-btn">Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <h1>Test Finished!</h1>
+            <p id="result-message">Calculating your results...</p>
+            <div class="final-score" id="final-score">0/100</div>
+            
+            <div class="score-breakdown" id="score-breakdown">
+                <!-- Breakdown injected by JS -->
+            </div>
+
+            <p class="telegram-placeholder" id="telegram-status">Sending your score to your teacher...</p>
+            <button class="btn btn-primary" id="restart-btn">Retake Test</button>
+        </div>
+
+    </div>
+
+    <!-- Custom JS -->
+    <script src="english-test-1034.js"></script>
+</body>
+</html>
