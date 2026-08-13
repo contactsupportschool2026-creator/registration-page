@@ -23,13 +23,15 @@ try {
     console.error('❌ Bot: Failed to initialize database:', err.message);
     return;    // ✅ Just stop the bot, don't kill the server
 }
-// ==========================================
-// HELPER: Check if user is admin (chat ID match only — no session check)
-// ==========================================
+// Whitelist of admin chat IDs (comma-separated in env var)
 function isAdmin(chatId) {
-    return chatId.toString() === (process.env.TELEGRAM_CHAT_ID || '').trim();
+    const ids = (process.env.TELEGRAM_ADMIN_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (ids.length === 0) {
+        // Fallback to the single TELEGRAM_CHAT_ID if the list isn't set
+        return chatId.toString() === (process.env.TELEGRAM_CHAT_ID || '').trim();
+    }
+    return ids.includes(chatId.toString());
 }
-
 // ==========================================
 // SESSION GATE: Admin authentication store
 // ==========================================
@@ -160,28 +162,14 @@ bot.on('message', async (msg) => {
     // ── Permanently blocked this session → silently ignore ──────────────────
     if (blockedUsers.has(chatId)) return;
 
-    const adminId = (process.env.TELEGRAM_CHAT_ID || '').trim();
-
-    // ── User was challenged; this message is their chat ID response ──────────
-    if (challengedUsers.has(chatId)) {
-        challengedUsers.delete(chatId);
-        if (text === adminId) {
-            verifiedSessions.add(chatId);
-            await safeSend(chatId, '✅ *Access granted.* Welcome, Admin!', { parse_mode: 'Markdown' });
-        } else {
-            blockedUsers.add(chatId);
-            await safeSend(chatId, '⛔ Access denied. This bot is restricted to the admin only.');
-        }
-        return;
+    // ── Admin whitelist auto-verification (no manual chat ID typing) ──────────
+    if (isAdmin(chatId)) {
+        verifiedSessions.add(chatId);
+        return; // allow admins through without any prompt
     }
 
-    // ── First contact (or first message after restart) → send challenge ──────
-    challengedUsers.add(chatId);
-    await safeSend(
-        chatId,
-        '🔐 *Admin access required.*\n\nPlease send your Chat ID to continue.',
-        { parse_mode: 'Markdown' }
-    );
+    // ── Everyone else is silently ignored ────────────────────────────────────
+    // (Do not send any prompt — this keeps the bot silent to non-admins.)
 });
 
 // ==========================================
