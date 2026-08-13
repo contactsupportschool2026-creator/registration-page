@@ -38,9 +38,6 @@ function isAdmin(chatId) {
 // All three sets are keyed by chatId.toString().
 // They reset on every bot process restart (in-memory only, by design).
 const verifiedSessions = new Set(); // chat IDs that passed the gate this session
-const blockedUsers     = new Set(); // chat IDs that sent a wrong chat ID
-const challengedUsers  = new Set(); // chat IDs that received the challenge prompt
-
 /** Returns true only if chatId has been verified this session. */
 function isVerified(chatId) {
     return verifiedSessions.has(chatId.toString());
@@ -158,9 +155,6 @@ bot.on('message', async (msg) => {
 
     // ── Already verified this session → let command handlers run ────────────
     if (isVerified(chatId)) return;
-
-    // ── Permanently blocked this session → silently ignore ──────────────────
-    if (blockedUsers.has(chatId)) return;
 
     // ── Admin whitelist auto-verification (no manual chat ID typing) ──────────
     if (isAdmin(chatId)) {
@@ -1241,19 +1235,18 @@ cronJobs.push(cron.schedule('0 * * * *', async () => {
 
 console.log('🤖 Telegram Bot is running...');
 
-// Notify admin that the bot process has (re)started.
-// The admin will need to re-verify their session since sessions are in-memory.
+// Notify admin(s) that the bot process has (re)started.
 (async () => {
     try {
-        const adminId = (process.env.TELEGRAM_CHAT_ID || '').trim();
-        if (adminId) {
-            await safeSend(adminId, '🤖 *Bot is online and ready.*\n\nSend your Chat ID to begin your session.', { parse_mode: 'Markdown' });
+        const adminIds = (process.env.TELEGRAM_ADMIN_CHAT_IDS || process.env.TELEGRAM_CHAT_ID || '')
+            .split(',').map(s => s.trim()).filter(Boolean);
+        for (const id of adminIds) {
+            await safeSend(id, '🤖 *Bot is online and ready.* Your admin access is active.', { parse_mode: 'Markdown' });
         }
     } catch (e) {
         console.error('⚠️ Could not send startup notification:', e.message);
     }
 })();
-
 process.on('SIGTERM', async () => {
     console.log('🛑 SIGTERM received — stopping bot polling...');
     cronJobs.forEach(job => job.stop());
