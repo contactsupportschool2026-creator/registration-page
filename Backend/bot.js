@@ -530,7 +530,71 @@ bot.on('callback_query', async (query) => {
         }
         return;
     }
+    // ── Handle score table button ──
+    if (data === 'scoretable') {
+        try {
+            await bot.answerCallbackQuery(query.id);
+            const db = await readDB();
+            const ranked = buildLeaderboard(db);
 
+            if (ranked.length === 0) {
+                await bot.editMessageText('📭 *No students have scores yet.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
+                return;
+            }
+
+            let text = '📊 *Score Table* (all students)\n\n';
+            text += '`#   Name                     Tests   Avg     Sum     Last`\n';
+            text += '`────────────────────────────────────────────────────────`\n';
+            ranked.forEach((entry, i) => {
+                const s = entry.student;
+                const m = entry.summary;
+                const name = pad(s.fullName || 'N/A', 24);
+                const count = pad(m.count, 6);
+                const avg = pad(m.avg + '/100', 7);
+                const sum = pad(m.sum, 6);
+                const last = m.lastDate ? `${m.lastDate} ${m.lastTime || ''}` : 'N/A';
+                text += `\`${pad(String(i + 1), 3)} ${name}${count}${avg}${sum}${last}\`\n`;
+            });
+            text += '`────────────────────────────────────────────────────────`';
+
+            await bot.editMessageText(text, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
+        } catch (err) {
+            console.error('❌ [/exportpdf scoretable] Error:', err.message);
+            try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
+        }
+        return;
+    }
+
+    // ── Handle leaderboard button ──
+    if (data === 'leaderboard') {
+        try {
+            await bot.answerCallbackQuery(query.id);
+            const db = await readDB();
+            const ranked = buildLeaderboard(db);
+
+            if (ranked.length === 0) {
+                await bot.editMessageText('📭 *No students have scores yet.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
+                return;
+            }
+
+            let text = '🏆 *Top Students* (ranked by total score)\n\n';
+            ranked.forEach((entry, i) => {
+                const s = entry.student;
+                const m = entry.summary;
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+                text += `${medal} *${s.fullName}* — ${m.avg}/100 (${m.count} test${m.count === 1 ? '' : 's'})\n`;
+                if (m.lastDate) {
+                    text += `      _Last: ${m.lastDate}${m.lastTime ? ' ' + m.lastTime : ''}_\n`;
+                }
+            });
+
+            await bot.editMessageText(text, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
+        } catch (err) {
+            console.error('❌ [/exportpdf leaderboard] Error:', err.message);
+            try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
+        }
+        return;
+    }
     // Handle delete confirm
     if (data.startsWith('deleteconfirm|')) {
         const invoiceId = data.split('|')[1];
