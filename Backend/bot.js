@@ -683,10 +683,9 @@ const pendingScoreQueries = new Map(); // chatId -> { step: 'find'|'score', stud
 const pendingExtendQueries = new Map(); // chatId -> { step: 'find'|'days', student }
 // chat IDs awaiting a student name for export
 
-// ==========================================
 // ADMIN COMMAND: /exportpdf — Export student(s) to PDF
 // ==========================================
-// /exportpdf → shows inline buttons: [Export All] 
+// /exportpdf → shows inline buttons: [Export ALL] [Score Table] [Top Students]
 bot.onText(/^\/exportpdf$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
@@ -698,6 +697,8 @@ bot.onText(/^\/exportpdf$/, async (msg) => {
         reply_markup: {
             inline_keyboard: [
                 [ { text: `📦 Export ALL (${count} students)`, callback_data: 'exportall' } ],
+                [ { text: `📊 Score Table (all students)`, callback_data: 'scoretable' } ],
+                [ { text: `🏆 Top Students (ranked)`, callback_data: 'leaderboard' } ],
             ]
         }
     };
@@ -706,13 +707,65 @@ bot.onText(/^\/exportpdf$/, async (msg) => {
         chatId,
         `📄 *Export PDF*
 
-Click below to export the full database as a table.
+Click below to export the full database as a table, view the score table, or see the ranked leaderboard.
 
 Database has *${count}* student(s).`,
         { parse_mode: 'Markdown', ...buttons }
     );
 });
 
+// ==========================================
+// SCORE CALCULATION HELPERS
+// ==========================================
+// Each student has `quizScores` (array of { name, score, date, time }), each out of 100,
+// plus an optional manual `score` override. Returns { count, sum, avg, lastDate, lastTime }.
+function computeScoreSummary(student) {
+    const quizzes = (student.quizScores && Array.isArray(student.quizScores)) ? student.quizScores : [];
+    let sum = 0;
+    let latest = null;
+
+    for (const q of quizzes) {
+        const qScore = (typeof q.score === 'number') ? q.score : (parseFloat(q.score) || 0);
+        sum += qScore;
+
+        // Track most recent quiz by date (DD/MM/YYYY) + time
+        const d = (q.date || '').split('/').reverse().join('-'); // -> YYYY-MM-DD
+        const stamp = d + ' ' + (q.time || '');
+        if (stamp.trim().length > 1 && (!latest || stamp > latest.stamp)) {
+            latest = { date: q.date, time: q.time };
+        }
+    }
+
+    const count = quizzes.length;
+    let avg = null;
+    if (count > 0) {
+        avg = sum / count;
+    } else if (typeof student.score === 'number') {
+        avg = student.score; // manual score only
+    }
+
+    return {
+        count,
+        sum: Math.round(sum * 100) / 100,
+        avg: avg != null ? Math.round(avg * 100) / 100 : null,
+        lastDate: latest ? latest.date : null,
+        lastTime: latest ? latest.time : null
+    };
+}
+
+// Build a ranked list (highest average first) of students who have a score.
+function buildLeaderboard(db) {
+    return db
+        .map(s => ({ student: s, summary: computeScoreSummary(s) }))
+        .filter(x => x.summary.avg != null)
+        .sort((a, b) => b.summary.avg - a.summary.avg);
+}
+
+// Pad a string to a fixed width for a monospace table.
+function pad(str, len) {
+    str = String(str);
+    return str.length >= len ? str.slice(0, len) : str + ' '.repeat(len - str.length);
+}
 
 // ==========================================
 // ADMIN COMMAND: /setscore - Set a student's score out of 100
