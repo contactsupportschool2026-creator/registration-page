@@ -531,87 +531,6 @@ bot.on('callback_query', async (query) => {
         return;
     }
 
-    // ── Handle Score Table button ──
-    if (data === 'scoretable') {
-        try {
-            await bot.answerCallbackQuery(query.id);
-            const db = await readDB();
-            const rows = buildScoreTable(db);
-
-            if (rows.length === 0) {
-                await bot.editMessageText('📭 *No scores recorded yet.* Students haven\'t taken any quizzes/tests.', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
-                return;
-            }
-
-            const lines = [];
-            lines.push(`📊 *Score Table* — ${rows.length} student(s)\n`);
-            rows.forEach((r, i) => {
-                lines.push(formatScoreRow(i + 1, r));
-            });
-
-            // Chunk into safe message blocks (Telegram limit 4096 chars)
-            let chunk = '';
-            for (const line of lines) {
-                const maybe = chunk + line + '\n';
-                if (maybe.length > 4000) {
-                    await safeSend(chatId, chunk, { parse_mode: 'Markdown' });
-                    chunk = line + '\n';
-                } else {
-                    chunk = maybe;
-                }
-            }
-            if (chunk.trim()) {
-                await safeSend(chatId, chunk, { parse_mode: 'Markdown' });
-            }
-        } catch (err) {
-            console.error('❌ [/exportpdf scoretable] Error:', err.message);
-            try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
-        }
-        return;
-    }
-
-    // ── Handle Top Students (leaderboard) button ──
-    if (data === 'leaderboard') {
-        try {
-            await bot.answerCallbackQuery(query.id);
-            const db = await readDB();
-            const rows = buildScoreTable(db);
-
-            if (rows.length === 0) {
-                await bot.editMessageText('📭 *No scores recorded yet.* Students haven\'t taken any quizzes/tests.', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
-                return;
-            }
-
-            const now = new Date();
-            const today = now.toLocaleDateString('en-GB');
-            const nowTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-            const lines = [];
-            lines.push(`🏆 *Top Students* — ranked by average score\n_Generated: ${today} ${nowTime}_\n`);
-            rows.forEach((r, i) => {
-                lines.push(formatScoreRow(i + 1, r));
-            });
-
-            let chunk = '';
-            for (const line of lines) {
-                const maybe = chunk + line + '\n';
-                if (maybe.length > 4000) {
-                    await safeSend(chatId, chunk, { parse_mode: 'Markdown' });
-                    chunk = line + '\n';
-                } else {
-                    chunk = maybe;
-                }
-            }
-            if (chunk.trim()) {
-                await safeSend(chatId, chunk, { parse_mode: 'Markdown' });
-            }
-        } catch (err) {
-            console.error('❌ [/exportpdf leaderboard] Error:', err.message);
-            try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
-        }
-        return;
-    }
-
     // Handle delete confirm
     if (data.startsWith('deleteconfirm|')) {
         const invoiceId = data.split('|')[1];
@@ -765,88 +684,9 @@ const pendingExtendQueries = new Map(); // chatId -> { step: 'find'|'days', stud
 // chat IDs awaiting a student name for export
 
 // ==========================================
-// ==========================================
-// SCORE CALCULATOR: compute a student's score summary from quizScores
-// ==========================================
-// Each quiz/task is out of 100. This computes:
-//   - count:  number of quizzes/tests taken
-//   - sum:    total of all quiz scores (e.g. 90+80+70 = 240)
-//   - average: mean score out of 100 (what the 'score' field stores)
-//   - lastDate, lastTime: date/time of the most recent quiz
-// Also honours a manually-set 'score' (via /setscore) when no quizScores exist.
-function computeScoreSummary(student) {
-    const quizzes = Array.isArray(student.quizScores) ? student.quizScores : [];
-    const count = quizzes.length;
-
-    if (count === 0) {
-        // No quizzes recorded — fall back to the manually set score, if any
-        const manual = (student.score != null && !isNaN(Number(student.score)))
-            ? Number(student.score) : null;
-        return {
-            count: 0,
-            sum: manual,
-            average: manual,
-            lastDate: null,
-            lastTime: null,
-        };
-    }
-
-    let sum = 0;
-    let last = null;
-    for (const q of quizzes) {
-        const s = Number(q.score);
-        if (!isNaN(s)) sum += s;
-
-        // Track most recent quiz by date+time (string compare works for dd/mm/yyyy + HH:MM)
-        if (q.date) {
-            const key = `${q.date} ${q.time || '00:00'}`;
-            if (!last || key.localeCompare(last.key) > 0) {
-                last = { key, date: q.date, time: q.time || null };
-            }
-        }
-    }
-
-    const average = sum / count;
-
-    return {
-        count,
-        sum,
-        average: parseFloat(average.toFixed(2)),
-        lastDate: last ? last.date : null,
-        lastTime: last ? last.time : null,
-    };
-}
-
-// ==========================================
-// Build the score table (all students, ranked by average score, desc)
-// ==========================================
-function buildScoreTable(db) {
-    const rows = db
-        .map(s => ({ student: s, summary: computeScoreSummary(s) }))
-        // Only include students that have either a score or quizzes
-        .filter(r => r.summary.average != null)
-        .sort((a, b) => b.summary.average - a.summary.average);
-
-    return rows;
-}
-
-// ==========================================
-// Format a single student's score line
-// ==========================================
-function formatScoreRow(rank, row) {
-    const s = row.student;
-    const sm = row.summary;
-    const avg = sm.average != null ? `${sm.average}/100` : 'N/A';
-    const sum = sm.sum != null ? `${sm.sum}` : 'N/A';
-    const last = (sm.lastDate && sm.lastTime) ? `${sm.lastDate} ${sm.lastTime}` : (sm.lastDate || '—');
-    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
-    return `${medal} *${s.fullName}* — Avg: ${avg} | Total: ${sum} | Quizzes: ${sm.count} | Last: ${last}`;
-}
-
-// ==========================================
 // ADMIN COMMAND: /exportpdf — Export student(s) to PDF
 // ==========================================
-// /exportpdf → shows inline buttons: [Export ALL] [Score Table] [Top Students]
+// /exportpdf → shows inline buttons: [Export All] 
 bot.onText(/^\/exportpdf$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
@@ -858,15 +698,17 @@ bot.onText(/^\/exportpdf$/, async (msg) => {
         reply_markup: {
             inline_keyboard: [
                 [ { text: `📦 Export ALL (${count} students)`, callback_data: 'exportall' } ],
-                [ { text: `📊 Score Table (all students)`, callback_data: 'scoretable' } ],
-                [ { text: `🏆 Top Students (ranked)`, callback_data: 'leaderboard' } ],
             ]
         }
     };
 
     await safeSend(
         chatId,
-        `📄 *Export PDF*\n\nClick below to export the full database as a table, view the score table, or see the ranked leaderboard.\n\nDatabase has *${count}* student(s).`,
+        `📄 *Export PDF*
+
+Click below to export the full database as a table.
+
+Database has *${count}* student(s).`,
         { parse_mode: 'Markdown', ...buttons }
     );
 });
@@ -1058,7 +900,7 @@ bot.onText(/\/help/, async (msg) => {
 *📋 View & Export*
 \`/getall\` — List all students with status
 \`/search\` — Search by name, invoice ID, wilaya, specialty, school, or status
-\`\`/exportpdf\` — Export PDF, view score table, or see top students (buttons)
+\`\`/exportpdf\` — Export all students to PDF (table format)
 
 *✏️ Manage Students*
 \`/updatestatus\` — Change a student's status (paid/pending/warned/kicked)
@@ -1072,7 +914,7 @@ bot.onText(/\/help/, async (msg) => {
 \`/search\` → type the student's name or invoice ID
 \`/updatestatus\` → type the name → click the new status button
 \`/delete\` → type the name → click *Delete* or *Cancel*
-\`\`/exportpdf\` → click *Export ALL*, *Score Table*, or *Top Students*
+\`\`/exportpdf\` → click *Export ALL* to download the table
 
 📌 *Classic commands:*
 \`/sendlink inv_12345\`
