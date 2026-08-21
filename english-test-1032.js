@@ -399,3 +399,47 @@ restartBtn.addEventListener('click', () => {
     resultScreen.classList.remove('active');
     startScreen.classList.add('active');
 });
+// ==========================================
+// DYNAMIC PDF GENERATION
+// ==========================================
+function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(16);
+    doc.text("Test 1032 - Reading Comprehension Review", 105, 20, null, null, 'center');
+    doc.setFontSize(12);
+    doc.text(`Student: ${studentUsername}`, 14, 30);
+    doc.text(`Score: ${document.getElementById('final-score').textContent} / 100`, 14, 40);
+    
+    let y = 50;
+    const lineH = 7;
+    
+    const addQ = (qText, studentAns, correctAns) => {
+        if(y > 270) { doc.addPage(); y = 20; }
+        doc.setFont(undefined, 'bold');
+        const qLines = doc.splitTextToSize(qText, 180);
+        doc.text(qLines, 14, y); y += (qLines.length * lineH);
+        
+        doc.setFont(undefined, 'normal');
+        const sLines = doc.splitTextToSize(`Your Answer: ${studentAns || 'N/A'}`, 180);
+        doc.text(sLines, 20, y); y += (sLines.length * lineH);
+        
+        doc.setTextColor(0, 100, 0); // Dark green for correct answer
+        const cLines = doc.splitTextToSize(`Correct Answer: ${correctAns}`, 180);
+        doc.text(cLines, 20, y); y += (cLines.length * lineH);
+        doc.setTextColor(0, 0, 0); // Reset color
+        y += 4;
+    };
+
+    addQ("1a. Ethical workers improve...", userAnswers[1].a, "human relationships");
+    addQ("1b. Workplace can be exposed to...", userAnswers[1].b, "unethical practices");
+    addQ("1c. Lack of confidence...", userAnswers[1].c, "affects work quality");
+    addQ("2. Order of ideas (1, 2, 3)", `a:${userAnswers[2].a}, b:${userAnswers[2].b}, c:${userAnswers[2].c}`, "b:1, c:2, a:3");
+    addQ("3a. Unethical practices focused on?", userAnswers[3].a, "discrimination, fraud, theft, harassment.");
+    addQ("3b. Why trust workmates?", userAnswers[3].b, "Enhances productivity, easier to communicate and work with others.");
+    addQ("3c. Confidence fruitful? Justify.", userAnswers[3].c, "Yes. It can open doors to new responsibilities, promotions, and pay raise.");
+    addQ("4. Appropriate title", userAnswers[4], "c) Ethics at the workplace.");
+
+    doc.save("1032-Test-Review.pdf");
+    }
