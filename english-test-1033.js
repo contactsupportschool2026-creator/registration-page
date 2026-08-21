@@ -420,3 +420,51 @@ restartBtn.addEventListener('click', () => {
     resultScreen.classList.remove('active');
     startScreen.classList.add('active');
 });
+// ==========================================
+// DYNAMIC PDF GENERATION
+// ==========================================
+function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(16);
+    doc.text("Test 1033 - Health Sector Review", 105, 20, null, null, 'center');
+    doc.setFontSize(12);
+    doc.text(`Student: ${studentUsername}`, 14, 30);
+    doc.text(`Score: ${document.getElementById('final-score').textContent} / 100`, 14, 40);
+    
+    let y = 50;
+    const lineH = 7;
+    
+    const addQ = (qText, studentAns, correctAns) => {
+        if(y > 270) { doc.addPage(); y = 20; }
+        doc.setFont(undefined, 'bold');
+        const qLines = doc.splitTextToSize(qText, 180);
+        doc.text(qLines, 14, y); y += (qLines.length * lineH);
+        
+        doc.setFont(undefined, 'normal');
+        const sLines = doc.splitTextToSize(`Your Answer: ${studentAns || 'N/A'}`, 180);
+        doc.text(sLines, 20, y); y += (sLines.length * lineH);
+        
+        doc.setTextColor(0, 100, 0);
+        const cLines = doc.splitTextToSize(`Correct Answer: ${correctAns}`, 180);
+        doc.text(cLines, 20, y); y += (cLines.length * lineH);
+        doc.setTextColor(0, 0, 0);
+        y += 4;
+    };
+
+    addQ("1. Text taken from:", userAnswers[1], "a: a web site.");
+    addQ("2a. Corruption affects the poor.", userAnswers[2].a, "True");
+    addQ("2b. Bribes for health care.", userAnswers[2].b, "True");
+    addQ("2c. Gov can't fight disappearance.", userAnswers[2].c, "False");
+    addQ("2d. Don't have to know budgets.", userAnswers[2].d, "False");
+    addQ("3a. Unethical behaviours by medical staff?", userAnswers[3].a, "Charge unofficial fees, demand bribes for medication.");
+    addQ("3b. How gov fights disappearance?", userAnswers[3].b, "Publish detailed health budgets, track funds.");
+    addQ("3c. Improve services locally?", userAnswers[3].c, "Yes. Demand accountability, scrutinise budgets.");
+    addQ("4a. Paragraph for well paid workers.", userAnswers[4].a, "Paragraph 3");
+    addQ("4b. Paragraph for bribery for treatment.", userAnswers[4].b, "Paragraph 1");
+    addQ("5a. who (§2)", userAnswers[5].a, "Ministers and hospital administrators");
+    addQ("5b. we (§4)", userAnswers[5].b, "People / readers");
+
+    doc.save("1033-Test-Review.pdf");
+}
