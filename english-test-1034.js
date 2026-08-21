@@ -393,3 +393,51 @@ restartBtn.addEventListener('click', () => {
     resultScreen.classList.remove('active');
     startScreen.classList.add('active');
 });
+// ==========================================
+// DYNAMIC PDF GENERATION
+// ==========================================
+function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(16);
+    doc.text("Test 1034 - Business Ethics Review", 105, 20, null, null, 'center');
+    doc.setFontSize(12);
+    doc.text(`Student: ${studentUsername}`, 14, 30);
+    doc.text(`Score: ${document.getElementById('final-score').textContent} / 100`, 14, 40);
+    
+    let y = 50;
+    const lineH = 7;
+    
+    const addQ = (qText, studentAns, correctAns) => {
+        if(y > 270) { doc.addPage(); y = 20; }
+        doc.setFont(undefined, 'bold');
+        const qLines = doc.splitTextToSize(qText, 180);
+        doc.text(qLines, 14, y); y += (qLines.length * lineH);
+        
+        doc.setFont(undefined, 'normal');
+        const sLines = doc.splitTextToSize(`Your Answer: ${studentAns || 'N/A'}`, 180);
+        doc.text(sLines, 20, y); y += (sLines.length * lineH);
+        
+        doc.setTextColor(0, 100, 0);
+        const cLines = doc.splitTextToSize(`Correct Answer: ${correctAns}`, 180);
+        doc.text(cLines, 20, y); y += (cLines.length * lineH);
+        doc.setTextColor(0, 0, 0);
+        y += 4;
+    };
+
+    addQ("1. Type of text:", userAnswers[1], "a) an extract from a book");
+    addQ("2a. Ethics only about law.", userAnswers[2].a, "False");
+    addQ("2b. Put people/environment first.", userAnswers[2].b, "True");
+    addQ("2c. Unethical lose trust.", userAnswers[2].c, "True");
+    addQ("2d. All successful are ethical.", userAnswers[2].d, "False");
+    addQ("3a. What is business ethics?", userAnswers[3].a, "Study of right and wrong in commerce.");
+    addQ("3b. Treat workers?", userAnswers[3].b, "Fair wages, safe working conditions.");
+    addQ("3c. Unethical practices?", userAnswers[3].c, "False advertising, bribery, cheap labor.");
+    addQ("3d. Why act ethically?", userAnswers[3].d, "Gain trust, build long-term success.");
+    addQ("4. General idea", userAnswers[4], "c- The importance of ethics in business");
+    addQ("5a. it (§1)", userAnswers[5].a, "the study of business ethics");
+    addQ("5b. their (§2)", userAnswers[5].b, "some companies");
+
+    doc.save("1034-Test-Review.pdf");
+}
