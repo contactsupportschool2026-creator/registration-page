@@ -468,3 +468,32 @@ function generatePDF() {
 
     doc.save("1033-Test-Review.pdf");
 }
+// ==========================================
+// DICTIONARY MODAL LOGIC
+// ==========================================
+const dictBtn = document.getElementById('dict-btn');
+const dictModalOverlay = document.getElementById('dict-modal-overlay');
+const dictCloseBtn = document.getElementById('dict-close-btn');
+
+// Open dictionary
+if (dictBtn) {
+    dictBtn.addEventListener('click', () => {
+        dictModalOverlay.classList.add('active');
+    });
+}
+
+// Close dictionary (clicking the X)
+if (dictCloseBtn) {
+    dictCloseBtn.addEventListener('click', () => {
+        dictModalOverlay.classList.remove('active');
+    });
+}
+
+// Close dictionary (clicking outside the box)
+if (dictModalOverlay) {
+    dictModalOverlay.addEventListener('click', (e) => {
+        if (e.target === dictModalOverlay) {
+            dictModalOverlay.classList.remove('active');
+        }
+    });
+}
