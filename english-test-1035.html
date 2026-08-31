@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Comprehension - English Test 1035</title>
+    
+    <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- jsPDF Library for Dynamic PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="english-test-1035.css">
+</head>
+<body>
+
+    <!-- Fixed Top Left Logo -->
+    <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
+
+    <div class="app-container">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <h1>Reading Comprehension</h1>
+            <p>Read the text carefully and answer the questions. You will see your score only at the end of the test.</p>
+            <div>
+                <label for="telegram-user">Enter your Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username" required>
+            </div>
+            <button class="btn btn-primary" id="start-btn">Start Test</button>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <!-- Persistent Text Panel -->
+            <div class="text-panel">
+                <h2>The Indus Civilization</h2>
+                <p>The valley of the Indus River is considered to be the birthplace of the Indus civilization. Located on the Indian subcontinent in modern Pakistan, the Indus civilization was not discovered by archaeologists until 1924. The ancient history of this region is obscured by legend. It appears, however, that by 4000 BC primitive farmers were growing vegetables, grains, and breeding animals along the riverbanks.</p>
+                <p>There is some evidence that Mesopotamian traders reached the nearly Indian people by sailing from Sumer to the Indus valley. The Indians shared some developments - such as complex irrigation and drainage systems, and the art of writing – with Sumer, they also developed their own system of writing.</p>
+                <p>The Indus civilization had large cities that were well laid-out and well fortified. There were public buildings, palaces, baths, and large granaries to hold agricultural produce. The many artworks found by archaeologists indicate that the residents of the Indus had reached a fairly high level of culture before their civilization was destroyed.</p>
+                <p class="text-ref">Adapted from Britannica 2009</p>
+            </div>
+
+            <!-- Progress Map (5 dots for 5 questions) -->
+            <div class="progress-map" id="progress-map">
+                <div class="progress-dot active"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+            </div>
+
+            <!-- Dynamic Question Container -->
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content">
+                    <!-- Questions injected by JS -->
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-download" id="dict-btn">📖 Dictionary</button>
+                        <button class="btn btn-primary" id="next-btn">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <h1>Test Finished!</h1>
+            <p id="result-message">Calculating your results...</p>
+            <div class="final-score" id="final-score">0/100</div>
+            
+            <div class="score-breakdown" id="score-breakdown">
+                <!-- Breakdown injected by JS -->
+            </div>
+
+            <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved ...</p>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="restart-btn">Retake Test</button>
+                <button class="btn btn-download" onclick="generatePDF()">
+                    ⬇ Download Answers & Review (PDF)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dictionary Modal (Outside app-container) -->
+    <div id="dict-modal-overlay" class="dict-modal-overlay">
+        <div class="dict-modal">
+            <div class="dict-modal-header">
+                <h3>Test Dictionary</h3>
+                <button class="dict-close-btn" id="dict-close-btn">×</button>
+            </div>
+            <div class="dict-modal-text">
+                <!-- ========================================== -->
+                <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
+                <!-- ========================================== -->
+                <p><strong>Archaeologist:</strong> A person who studies human history and prehistory through the excavation of sites and the analysis of artifacts.</p>
+                <p><strong>Civilization:</strong> The stage of human social and cultural development and organization that is considered most advanced.</p>
+                <p><strong>Fortified:</strong> Strengthened or protected against attack.</p>
+                <p><strong>Granary:</strong> A storehouse for threshed grain.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="english-test-1035.js"></script>
+</body>
+</html>
