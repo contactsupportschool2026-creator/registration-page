@@ -54,17 +54,13 @@
                 <div class="progress-dot"></div>
             </div>
 
-            <!-- Dynamic Question Container -->
-            <div class="question-container">
-                <div class="question-content-wrapper" id="question-content">
-                    <!-- Questions injected by JS -->
-                </div>
                 <div class="nav-buttons">
                     <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
-                    <button class="btn btn-primary" id="next-btn">Next</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-download" id="dict-btn">📖 Dictionary</button>
+                        <button class="btn btn-primary" id="next-btn">Next</button>
+                    </div>
                 </div>
-            </div>
-        </div>
 
         <!-- RESULT SCREEN -->
         <div id="result-screen" class="screen">
@@ -85,7 +81,23 @@
                 </button>
             </div>
     </div>
-
+        <!-- Dictionary Modal -->
+        <div id="dict-modal-overlay" class="dict-modal-overlay">
+            <div class="dict-modal">
+                <div class="dict-modal-header">
+                    <h3>Test Dictionary</h3>
+                    <button class="dict-close-btn" id="dict-close-btn">×</button>
+                </div>
+                <div class="dict-modal-text">
+                    <!-- ========================================== -->
+                    <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
+                    <!-- ========================================== -->
+                    <p><strong>Word 1:</strong> Definition goes here.</p>
+                    <p><strong>Word 2:</strong> Definition goes here.</p>
+                    <p><strong>Word 3:</strong> Definition goes here.</p>
+                </div>
+            </div>
+        </div>
     <!-- Custom JS -->
     <script src="english-test-1034.js"></script>
 </body>
