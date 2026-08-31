@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Comprehension - English Test 1036</title>
+    
+    <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- jsPDF Library for Dynamic PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="english-test-1036.css">
+</head>
+<body>
+
+    <!-- Fixed Top Left Logo -->
+    <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
+
+    <div class="app-container">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <h1>Reading Comprehension</h1>
+            <p>Read the text carefully and answer the questions. You will see your score only at the end of the test.</p>
+            <div>
+                <label for="telegram-user">Enter your Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username" required>
+            </div>
+            <button class="btn btn-primary" id="start-btn">Start Test</button>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <!-- Persistent Text Panel -->
+            <div class="text-panel">
+                <h2>Algeria's UNESCO Heritage</h2>
+                <p>Algeria has an impressive history with valuable cultural sites that are internationally acknowledged on UNESCO's Heritage List, with a total of seven recognized sites.</p>
+                <p>Starting with the Al Qal'a of Ben Hammad, this archaeological site houses the remains of the country's second largest ancient mosque. It has influenced the development of Arab architecture and other civilizing influences in the region. Djemila and Timgad, on the other hand, offer insights into Roman civilization. Djemila is a mountain village with well-preserved Berber-Roman ruins, showcasing a unique adaptation of Roman architecture in a mountain environment, earning its place on UNESCO's list. While Timgad, founded as a military colony by Emperor Trajan, exemplifies Roman town planning and represents the grandeur of Rome in Numidian soil.</p>
+                <p>Additionally, the Casbah of Algiers and the M’Zab Valley represent the unique architectural and cultural heritage of Algeria. The Casbah is known for its fascinating labyrinth and blend of modernization and old-world charm, featuring a wealth of French colonial buildings and Ottoman grandeur. The M'Zab Valley and Ghardaia, located in the Sahara, are UNESCO World Heritage Sites that preserve rich culture, history, and tradition for over a thousand years.</p>
+                <p>Lastly, Tipaza, along the Mediterranean coast, is an important archaeological site that bears exceptional testimony to the Punic and also to the Roman civilizations. Meanwhile, Tassili n'Ajjer, a vast plateau in southeast Algeria, is a remarkable treasure trove of prehistoric art, with over 15,000 engravings and paintings.</p>
+                <p class="text-ref">Adapted from UNESCO's and Mosaic North Africa's websites</p>
+            </div>
+
+            <!-- Progress Map (5 dots for 5 questions) -->
+            <div class="progress-map" id="progress-map">
+                <div class="progress-dot active"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+            </div>
+
+            <!-- Dynamic Question Container -->
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content">
+                    <!-- Questions injected by JS -->
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-download" id="dict-btn">📖 Dictionary</button>
+                        <button class="btn btn-primary" id="next-btn">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <h1>Test Finished!</h1>
+            <p id="result-message">Calculating your results...</p>
+            <div class="final-score" id="final-score">0/100</div>
+            
+            <div class="score-breakdown" id="score-breakdown">
+                <!-- Breakdown injected by JS -->
+            </div>
+
+            <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved ...</p>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="restart-btn">Retake Test</button>
+                <button class="btn btn-download" onclick="generatePDF()">
+                    ⬇ Download Answers & Review (PDF)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dictionary Modal -->
+    <div id="dict-modal-overlay" class="dict-modal-overlay">
+        <div class="dict-modal">
+            <div class="dict-modal-header">
+                <h3>Test Dictionary</h3>
+                <button class="dict-close-btn" id="dict-close-btn">×</button>
+            </div>
+            <div class="dict-modal-text">
+                <!-- ========================================== -->
+                <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
+                <!-- ========================================== -->
+                <p><strong>Archaeological:</strong> Relating to the study of human history and prehistory through the excavation of sites and the analysis of physical remains.</p>
+                <p><strong>Labyrinth:</strong> A complicated irregular network of passages in which it is difficult to find one's way.</p>
+                <p><strong>Grandeur:</strong> Splendor and impressiveness, especially of appearance or style.</p>
+                <p><strong>Testimony:</strong> Evidence or proof provided by the existence or appearance of something.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="english-test-1036.js"></script>
+</body>
+</html>
