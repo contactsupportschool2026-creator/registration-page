@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reading Comprehension - Business Ethics</title>
+    <title>Reading Comprehension - English Test 1034</title>
     
     <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-        <!-- jsPDF Library for Dynamic PDF Generation -->
+    
+    <!-- jsPDF Library for Dynamic PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- Custom CSS -->
@@ -54,6 +55,11 @@
                 <div class="progress-dot"></div>
             </div>
 
+            <!-- Dynamic Question Container -->
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content">
+                    <!-- Questions injected by JS -->
+                </div>
                 <div class="nav-buttons">
                     <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
                     <div style="display: flex; gap: 10px;">
@@ -61,6 +67,8 @@
                         <button class="btn btn-primary" id="next-btn">Next</button>
                     </div>
                 </div>
+            </div>
+        </div>
 
         <!-- RESULT SCREEN -->
         <div id="result-screen" class="screen">
@@ -72,32 +80,36 @@
                 <!-- Breakdown injected by JS -->
             </div>
 
-            <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved...</p>
-
+            <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved ...</p>
+            
             <div class="action-buttons">
                 <button class="btn btn-primary" id="restart-btn">Retake Test</button>
                 <button class="btn btn-download" onclick="generatePDF()">
                     ⬇ Download Answers & Review (PDF)
                 </button>
             </div>
+        </div>
     </div>
-        <!-- Dictionary Modal -->
-        <div id="dict-modal-overlay" class="dict-modal-overlay">
-            <div class="dict-modal">
-                <div class="dict-modal-header">
-                    <h3>Test Dictionary</h3>
-                    <button class="dict-close-btn" id="dict-close-btn">×</button>
-                </div>
-                <div class="dict-modal-text">
-                    <!-- ========================================== -->
-                    <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
-                    <!-- ========================================== -->
-                    <p><strong>Word 1:</strong> Definition goes here.</p>
-                    <p><strong>Word 2:</strong> Definition goes here.</p>
-                    <p><strong>Word 3:</strong> Definition goes here.</p>
-                </div>
+
+    <!-- Dictionary Modal -->
+    <div id="dict-modal-overlay" class="dict-modal-overlay">
+        <div class="dict-modal">
+            <div class="dict-modal-header">
+                <h3>Test Dictionary</h3>
+                <button class="dict-close-btn" id="dict-close-btn">×</button>
+            </div>
+            <div class="dict-modal-text">
+                <!-- ========================================== -->
+                <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
+                <!-- ========================================== -->
+                <p><strong>Commerce:</strong> The activity of buying and selling, especially on a large scale.</p>
+                <p><strong>Exploit:</strong> To make use of a situation or treat others unfairly in order to gain an advantage or profit.</p>
+                <p><strong>Bribery:</strong> The act of giving money or a gift to someone to influence their behavior or decisions.</p>
+                <p><strong>Stakeholders:</strong> A person with an interest or concern in something, especially a business.</p>
             </div>
         </div>
+    </div>
+
     <!-- Custom JS -->
     <script src="english-test-1034.js"></script>
 </body>
