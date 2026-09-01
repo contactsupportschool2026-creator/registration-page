@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reading Comprehension - Health Sector</title>
+    <title>Reading Comprehension - English Test 1033</title>
     
     <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-        <!-- jsPDF Library for Dynamic PDF Generation -->
+    
+    <!-- jsPDF Library for Dynamic PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <!-- Custom CSS -->
@@ -37,7 +38,7 @@
         <div id="quiz-screen" class="screen">
             <!-- Persistent Text Panel -->
             <div class="text-panel">
-                <h2>Read the text carefully then do the following activities.</h2>
+                <h2>Corruption in the Health Sector</h2>
                 <p>Corruption in the health sector can mean the difference between life and death. Poor people are the most affected. Medical staff can charge unofficial fees to attend to patients. They may demand bribes for medication which should be free. Corruption also costs lives when fake adulterated medications are sold to health services.</p>
                 <p>Without governmental control, public funds can easily disappear. World bank surveys show that in some countries up to 80 percent of non-salary health funds never reach local facilities. Ministers and hospital administrators who embezzle millions of dollars from health budgets, or accept bribes give bad reputation to qualified medical staff. Stolen funds also hamper efforts to beat major health challenges, such as Malaria and HIV/ AIDS.</p>
                 <p>Governments need to publish detailed health budgets and financial information to be understood. As a result, we can truck funds and prevent them from being stolen. Health workers need adequate pay and guarantees that salaries will reach them on time. Governments need to tackle counterfeit drugs at source.</p>
@@ -54,13 +55,20 @@
                 <div class="progress-dot"></div>
             </div>
 
-            <div class="nav-buttons">
+            <!-- Dynamic Question Container -->
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content">
+                    <!-- Questions injected by JS -->
+                </div>
+                <div class="nav-buttons">
                     <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn btn-download" id="dict-btn">📖 Dictionary</button>
                         <button class="btn btn-primary" id="next-btn">Next</button>
                     </div>
+                </div>
             </div>
+        </div>
 
         <!-- RESULT SCREEN -->
         <div id="result-screen" class="screen">
@@ -72,32 +80,36 @@
                 <!-- Breakdown injected by JS -->
             </div>
 
-            <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved...</p>
-
+            <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved ...</p>
+            
             <div class="action-buttons">
                 <button class="btn btn-primary" id="restart-btn">Retake Test</button>
                 <button class="btn btn-download" onclick="generatePDF()">
                     ⬇ Download Answers & Review (PDF)
                 </button>
             </div>
+        </div>
     </div>
-        <!-- Dictionary Modal -->
-        <div id="dict-modal-overlay" class="dict-modal-overlay">
-            <div class="dict-modal">
-                <div class="dict-modal-header">
-                    <h3>Test Dictionary</h3>
-                    <button class="dict-close-btn" id="dict-close-btn">×</button>
-                </div>
-                <div class="dict-modal-text">
-                    <!-- ========================================== -->
-                    <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
-                    <!-- ========================================== -->
-                    <p><strong>Word 1:</strong> Definition goes here.</p>
-                    <p><strong>Word 2:</strong> Definition goes here.</p>
-                    <p><strong>Word 3:</strong> Definition goes here.</p>
-                </div>
+
+    <!-- Dictionary Modal -->
+    <div id="dict-modal-overlay" class="dict-modal-overlay">
+        <div class="dict-modal">
+            <div class="dict-modal-header">
+                <h3>Test Dictionary</h3>
+                <button class="dict-close-btn" id="dict-close-btn">×</button>
+            </div>
+            <div class="dict-modal-text">
+                <!-- ========================================== -->
+                <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
+                <!-- ========================================== -->
+                <p><strong>Embezzle:</strong> To steal or misappropriate money from one's employer or an organization.</p>
+                <p><strong>Adulterated:</strong> Made inferior or impure by admixture with a cheaper or coarser substance.</p>
+                <p><strong>Scrutinise:</strong> To examine or inspect closely and thoroughly.</p>
+                <p><strong>Counterfeit:</strong> Made in exact imitation of something valuable with the intention to deceive or defraud.</p>
             </div>
         </div>
+    </div>
+
     <!-- Custom JS -->
     <script src="english-test-1033.js"></script>
 </body>
