@@ -408,6 +408,7 @@ input[type="text"]:focus, textarea:focus {
         font-size: 0.85rem;
     }
 }
+
 /* Download Button Style */
 .btn-download {
     background: transparent;
@@ -426,6 +427,7 @@ input[type="text"]:focus, textarea:focus {
     gap: 12px;
     margin-top: 10px;
 }
+
 /* ==========================================
    DICTIONARY MODAL STYLES
    ========================================== */
@@ -495,4 +497,4 @@ input[type="text"]:focus, textarea:focus {
 .dict-modal-text p {
     text-align: left;
     margin-bottom: 12px;
-}
+        }
