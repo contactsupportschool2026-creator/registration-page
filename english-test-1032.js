@@ -1,4 +1,3 @@
-
 let studentUsername = '';
 let currentStep = 0;
 let userAnswers = {
@@ -161,7 +160,7 @@ function renderQuestion() {
             html += `
                 <div class="sub-question">
                     <p>${q.text}</p>
-                    <textarea data-qid="${q.id}" rows="3" placeholder="Type your answer here...">${userAnswers[3][q.id.slice(1)] || ''}</textarea>
+                    <textarea data-qid="${q.id}" rows="3" placeholder="Type your answer here...">${userAnswers[q.id.charAt(0)][q.id.slice(1)] || ''}</textarea>
                 </div>
             `;
         });
@@ -265,24 +264,25 @@ function calculateScore() {
     let scoreBreakdown = { p1: 0, p2: 0, p3: 0, p4: 0 };
     let bubbles = []; // true = green, false = red
 
-    // Part 1 (3 pts)
+    // Part 1 (3 items)
     if (userAnswers[1].a === 'human relationships') { scoreBreakdown.p1++; bubbles.push(true); } else { bubbles.push(false); }
     if (userAnswers[1].b === 'unethical practices') { scoreBreakdown.p1++; bubbles.push(true); } else { bubbles.push(false); }
     if (userAnswers[1].c === 'affects work quality') { scoreBreakdown.p1++; bubbles.push(true); } else { bubbles.push(false); }
 
-    // Part 2 (3 pts) -> b=1, c=2, a=3
+    // Part 2 (3 items) -> b=1, c=2, a=3
     if (userAnswers[2].b === 1) { scoreBreakdown.p2++; bubbles.push(true); } else { bubbles.push(false); }
     if (userAnswers[2].c === 2) { scoreBreakdown.p2++; bubbles.push(true); } else { bubbles.push(false); }
     if (userAnswers[2].a === 3) { scoreBreakdown.p2++; bubbles.push(true); } else { bubbles.push(false); }
 
-    // Part 3 (6 pts) -> 2 pts per answer
-    if (containsKeywords(userAnswers[3].a, ['discrimination', 'fraud', 'theft', 'harassment'])) { scoreBreakdown.p3 += 2; bubbles.push(true, true); } else { bubbles.push(false, false); }
-    if (containsKeywords(userAnswers[3].b, ['productivity', 'communicate', 'easier'])) { scoreBreakdown.p3 += 2; bubbles.push(true, true); } else { bubbles.push(false, false); }
-    if (containsKeywords(userAnswers[3].c, ['yes', 'promotions', 'pay raise', 'responsibilities'])) { scoreBreakdown.p3 += 2; bubbles.push(true, true); } else { bubbles.push(false, false); }
+    // Part 3 (3 items)
+    if (containsKeywords(userAnswers[3].a, ['discrimination', 'fraud', 'theft', 'harassment'])) { scoreBreakdown.p3++; bubbles.push(true); } else { bubbles.push(false); }
+    if (containsKeywords(userAnswers[3].b, ['productivity', 'communicate', 'easier'])) { scoreBreakdown.p3++; bubbles.push(true); } else { bubbles.push(false); }
+    if (containsKeywords(userAnswers[3].c, ['yes', 'promotions', 'pay raise', 'responsibilities'])) { scoreBreakdown.p3++; bubbles.push(true); } else { bubbles.push(false); }
 
-    // Part 4 (3 pts)
-    if (userAnswers[4] === 'c) Ethics at the workplace.') { scoreBreakdown.p4 += 3; bubbles.push(true, true, true); } else { bubbles.push(false, false, false); }
+    // Part 4 (1 item)
+    if (userAnswers[4] === 'c) Ethics at the workplace.') { scoreBreakdown.p4++; bubbles.push(true); } else { bubbles.push(false); }
 
+    // Total raw score is out of 10
     const totalScore = scoreBreakdown.p1 + scoreBreakdown.p2 + scoreBreakdown.p3 + scoreBreakdown.p4;
     return { totalScore, scoreBreakdown, bubbles };
 }
@@ -313,8 +313,8 @@ function showResults() {
     
     const { totalScore, scoreBreakdown, bubbles } = calculateScore();
     
-    // Calculate score out of 100
-    const percentageScore = ((totalScore / 15) * 100).toFixed(2);
+    // Calculate score out of 100 (10 raw points)
+    const percentageScore = ((totalScore / 10) * 100).toFixed(2);
     document.getElementById('final-score').textContent = `${percentageScore}/100`;
     
     const breakdownHTML = `
@@ -327,19 +327,19 @@ function showResults() {
             <span class="breakdown-score">${scoreBreakdown.p2}/3</span>
         </div>
         <div class="breakdown-row">
-            <span class="breakdown-label">Part 3: Text Answers (out of 6)</span>
-            <span class="breakdown-score">${scoreBreakdown.p3}/6</span>
+            <span class="breakdown-label">Part 3: Text Answers (out of 3)</span>
+            <span class="breakdown-score">${scoreBreakdown.p3}/3</span>
         </div>
         <div class="breakdown-row">
-            <span class="breakdown-label">Part 4: Title (out of 3)</span>
-            <span class="breakdown-score">${scoreBreakdown.p4}/3</span>
+            <span class="breakdown-label">Part 4: Title (out of 1)</span>
+            <span class="breakdown-score">${scoreBreakdown.p4}/1</span>
         </div>
     `;
     document.getElementById('score-breakdown').innerHTML = breakdownHTML;
 
-    if(totalScore >= 10) {
+    if(totalScore >= 7) {
         document.getElementById('result-message').textContent = 'Excellent work! You have a solid understanding of the text.';
-    } else if(totalScore >= 6) {
+    } else if(totalScore >= 4) {
         document.getElementById('result-message').textContent = 'Good effort! Keep practicing your reading skills.';
     } else {
         document.getElementById('result-message').textContent = 'Needs improvement. Review the text and try again!';
@@ -399,6 +399,7 @@ restartBtn.addEventListener('click', () => {
     resultScreen.classList.remove('active');
     startScreen.classList.add('active');
 });
+
 // ==========================================
 // DYNAMIC PDF GENERATION
 // ==========================================
@@ -442,7 +443,8 @@ function generatePDF() {
     addQ("4. Appropriate title", userAnswers[4], "c) Ethics at the workplace.");
 
     doc.save("1032-Test-Review.pdf");
-    }
+}
+
 // ==========================================
 // DICTIONARY MODAL LOGIC
 // ==========================================
