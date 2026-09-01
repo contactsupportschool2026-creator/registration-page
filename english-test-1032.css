@@ -230,10 +230,15 @@ input[type="text"]:focus, textarea:focus {
     gap: 10px;
 }
 
+.options-row {
+    display: flex;
+    gap: 10px;
+}
+
 .option-btn {
     background: #fff;
     border: 1px solid #eee;
-    text-align: left;
+    text-align: center;
     color: #333;
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
@@ -241,6 +246,7 @@ input[type="text"]:focus, textarea:focus {
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex: 1;
 }
 
 .option-btn:hover {
@@ -444,6 +450,7 @@ input[type="text"]:focus, textarea:focus {
         font-size: 0.85rem;
     }
 }
+
 /* Download Button Style */
 .btn-download {
     background: transparent;
@@ -462,6 +469,7 @@ input[type="text"]:focus, textarea:focus {
     gap: 12px;
     margin-top: 10px;
 }
+
 /* ==========================================
    DICTIONARY MODAL STYLES
    ========================================== */
@@ -531,4 +539,4 @@ input[type="text"]:focus, textarea:focus {
 .dict-modal-text p {
     text-align: left;
     margin-bottom: 12px;
-}
+                                }
