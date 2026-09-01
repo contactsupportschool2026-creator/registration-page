@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Comprehension - English Test 1037</title>
+    
+    <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- jsPDF Library for Dynamic PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="english-test-1037.css">
+</head>
+<body>
+
+    <!-- Fixed Top Left Logo -->
+    <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
+
+    <div class="app-container">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <h1>Reading Comprehension</h1>
+            <p>Read the text carefully and answer the questions. You will see your score only at the end of the test.</p>
+            <div>
+                <label for="telegram-user">Enter your Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username" required>
+            </div>
+            <button class="btn btn-primary" id="start-btn">Start Test</button>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <!-- Persistent Text Panel -->
+            <div class="text-panel">
+                <h2>Ancient Civilizations</h2>
+                <p>The civilizations of the past whether they developed in Asia and in Africa or in Europe and South America had many features in common. They all shared aspects which historians today are trying to uncover and bring to our knowledge. No matter the geographical distance and centuries separating them, their study reveals that there are important areas where their similarity is striking and the gap holding them apart is quite narrow.</p>
+                <p>When we look at the Egyptians, the Chinese, the Babylonians, the Incas and the Greeks, we realize that none of them succeeded to become prosperous until they had laid the basis for the existence of a powerful state that imposed order and law both inside their countries and outside their borders.</p>
+                <p>They also formed well-organised armies that protected them from potential invaders and helped them to conquer other lands in order to widen their sources of income and establish their authority. The other element that was present in each of those glorious nations was the development of trade either at the local level or even in the frame involving foreign communities.</p>
+                <p>We notice, too, that the civilizations of the past made slavery a practice that was not only tolerated but also legalised. It was the same attitude as regards social inequality which was often considered as a reality belonging to the natural order of things against no solution was possible. Besides, immense efforts were devoted for the erection of gigantic constructions, which in addition to satisfy practical aims, were expected to perpetuate the memory and the glory of the rulers who were eager to defy time and immortalise their names.</p>
+            </div>
+
+            <!-- Progress Map (6 dots for 6 questions) -->
+            <div class="progress-map" id="progress-map">
+                <div class="progress-dot active"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+            </div>
+
+            <!-- Dynamic Question Container -->
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content">
+                    <!-- Questions injected by JS -->
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-download" id="dict-btn">📖 Dictionary</button>
+                        <button class="btn btn-primary" id="next-btn">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <h1>Test Finished!</h1>
+            <p id="result-message">Calculating your results...</p>
+            <div class="final-score" id="final-score">0/100</div>
+            
+            <div class="score-breakdown" id="score-breakdown">
+                <!-- Breakdown injected by JS -->
+            </div>
+
+            <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved ...</p>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="restart-btn">Retake Test</button>
+                <button class="btn btn-download" onclick="generatePDF()">
+                    ⬇ Download Answers & Review (PDF)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dictionary Modal -->
+    <div id="dict-modal-overlay" class="dict-modal-overlay">
+        <div class="dict-modal">
+            <div class="dict-modal-header">
+                <h3>Test Dictionary</h3>
+                <button class="dict-close-btn" id="dict-close-btn">×</button>
+            </div>
+            <div class="dict-modal-text">
+                <!-- ========================================== -->
+                <!-- TYPE YOUR DICTIONARY WORDS & DEFINITIONS HERE -->
+                <!-- ========================================== -->
+                <p><strong>Prosperous:</strong> Successful in material terms; flourishing financially.</p>
+                <p><strong>Invaders:</strong> An armed force or country that enters another country by force.</p>
+                <p><strong>Perpetuate:</strong> To make something continue indefinitely.</p>
+                <p><strong>Immortalise:</strong> To confer fame or immortality upon someone.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="english-test-1037.js"></script>
+</body>
+</html>
