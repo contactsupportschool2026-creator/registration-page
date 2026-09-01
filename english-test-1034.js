@@ -355,7 +355,7 @@ async function sendToTelegram(percentageScore) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                quizName: 'Business Ethics Test',
+                quizName: 'English Test 1034',
                 username: studentUsername,
                 score: percentageScore,
                 date: dateStr,
@@ -393,6 +393,7 @@ restartBtn.addEventListener('click', () => {
     resultScreen.classList.remove('active');
     startScreen.classList.add('active');
 });
+
 // ==========================================
 // DYNAMIC PDF GENERATION
 // ==========================================
@@ -441,6 +442,7 @@ function generatePDF() {
 
     doc.save("1034-Test-Review.pdf");
 }
+
 // ==========================================
 // DICTIONARY MODAL LOGIC
 // ==========================================
@@ -469,4 +471,4 @@ if (dictModalOverlay) {
             dictModalOverlay.classList.remove('active');
         }
     });
-}
+                    }
