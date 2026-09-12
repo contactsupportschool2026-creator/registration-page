@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reading Comprehension Tests - Bac & Beyond</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="unified-test.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
+
+    <div class="app-container">
+        <!-- START SCREEN -->
+        <div id="start-screen" class="screen active">
+            <h1>Reading Comprehension</h1>
+            <p>Choose a test, enter your Telegram username, and start.</p>
+
+            <div class="form-group">
+                <label for="telegram-user">Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="test-select">Select Test</label>
+                <select id="test-select">
+                    <option value="" disabled selected>Choose a test...</option>
+                    <!-- Options injected by JS -->
+                </select>
+            </div>
+
+            <button class="btn btn-primary" id="start-btn" disabled>Continue</button>
+        </div>
+
+        <!-- FULL SCREEN TEXT OVERLAY -->
+        <div id="text-overlay" class="text-overlay">
+            <div class="text-overlay-content">
+                <h2 id="overlay-title"></h2>
+                <div id="overlay-text"></div>
+            </div>
+            <button id="close-text-btn" class="close-text-btn">✕ Close Text</button>
+        </div>
+
+        <!-- QUIZ SCREEN -->
+        <div id="quiz-screen" class="screen">
+            <div class="progress-map" id="progress-map"></div>
+
+            <div class="question-container">
+                <div class="question-content-wrapper" id="question-content"></div>
+                <div class="nav-buttons">
+                    <button class="btn" id="prev-btn" style="visibility: hidden;">Previous</button>
+                    <div class="nav-right">
+                        <button class="btn btn-text" id="text-btn">📄 Text</button>
+                        <button class="btn btn-primary" id="next-btn">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT SCREEN -->
+        <div id="result-screen" class="screen">
+            <h1>Test Finished!</h1>
+            <p id="result-message">Calculating your results...</p>
+            <div class="final-score" id="final-score">0/100</div>
+            <div class="score-breakdown" id="score-breakdown"></div>
+            <p class="telegram-placeholder" id="telegram-status">Your score is being saved...</p>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="restart-btn">Choose Another Test</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dictionary Modal -->
+    <div id="dict-modal-overlay" class="dict-modal-overlay">
+        <div class="dict-modal">
+            <div class="dict-modal-header">
+                <h3>Test Dictionary</h3>
+                <button class="dict-close-btn" id="dict-close-btn">×</button>
+            </div>
+            <div class="dict-modal-text" id="dict-modal-text"></div>
+        </div>
+    </div>
+
+    <script src="unified-test.js"></script>
+</body>
+</html>
