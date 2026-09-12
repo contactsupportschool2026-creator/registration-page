@@ -405,6 +405,7 @@ const questionContent = document.getElementById("question-content");
 const progressMap = document.getElementById("progress-map");
 const appContainer = document.querySelector('.app-container');
 const pdfBtn = document.getElementById("pdf-btn");
+const navFooter = document.getElementById("nav-footer"); // Fixed Footer
 
 // ========== INIT ==========
 function init() {
@@ -429,6 +430,7 @@ function init() {
     resultScreen.classList.remove("active");
     quizScreen.classList.remove("active");
     startScreen.classList.add("active");
+    navFooter.style.display = "none"; // Hide footer on restart
     usernameInput.value = "";
     testSelect.value = "";
     startBtn.disabled = true;
@@ -492,6 +494,7 @@ function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
 function closeTextOverlay() {
   textOverlay.classList.remove("active");
   quizScreen.classList.add("active");
+  navFooter.style.display = "flex"; // Show footer during quiz
   buildProgress();
   renderQuestion();
 }
@@ -709,6 +712,7 @@ function calculateScore() {
 
 function finishTest() {
     quizScreen.classList.remove("active");
+    navFooter.style.display = "none"; // Hide footer on results
     resultScreen.classList.add("active");
     
     const { totalScore, bubbles, breakdownHTML } = calculateScore();
