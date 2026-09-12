@@ -173,7 +173,6 @@ select:focus {
     margin-bottom: 16px;
 }
 
-/* Highlighted dictionary words */
 .dict-word {
     text-decoration: underline;
     text-decoration-color: #8a2be2;
@@ -261,8 +260,12 @@ select:focus {
     gap: 8px;
 }
 
+.options-row.horizontal {
+    flex-direction: row;
+}
+
 .option-btn {
-    text-align: left;
+    text-align: center;
     padding: 12px 14px;
     border: 1px solid #e5e5e5;
     border-radius: 10px;
@@ -271,6 +274,7 @@ select:focus {
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.15s;
+    flex: 1;
 }
 
 .option-btn:hover {
@@ -413,6 +417,43 @@ textarea {
     background: #f3e9ff;
     padding: 2px 6px;
     border-radius: 4px;
+}
+
+/* Floating Bubbles Animation */
+.bubble-container {
+    position: absolute;
+    left: 50%;
+    bottom: 100px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 1000;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 80%;
+}
+
+.floating-bubble {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    opacity: 0;
+    animation: floatUp 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.floating-bubble.correct {
+    background: #00C853;
+    border: 1px solid #00b34a;
+}
+.floating-bubble.wrong {
+    background: rgba(255, 50, 50, 0.8);
+    border: 1px solid #cc0000;
+}
+
+@keyframes floatUp {
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translateY(-200px) scale(1.5); opacity: 0; }
 }
 
 /* Mobile optimizations */
