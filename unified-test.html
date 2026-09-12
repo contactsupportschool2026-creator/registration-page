@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reading Comprehension Tests - Bac & Beyond</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Fira Code', monospace;
+            background: #f7f8fa;
+            color: #111;
+            min-height: 100vh;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+        }
+        .quiz-logo {
+            position: fixed; top: 12px; left: 12px;
+            width: 46px; height: 46px; border-radius: 10px;
+            object-fit: cover; z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .app-container {
+            width: 100%; max-width: 540px; margin-top: 58px;
+        }
+        .screen { display: none; animation: fadeIn 0.35s ease; }
+        .screen.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.65rem; font-weight: 800;
+            text-align: center; margin-bottom: 6px;
+        }
+        #start-screen p {
+            text-align: center; color: #666; font-size: 0.9rem; margin-bottom: 22px;
+        }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block; font-size: 0.8rem; font-weight: 500;
+            margin-bottom: 5px; color: #444;
+        }
+        input[type="text"], select {
+            width: 100%; height: 48px; padding: 0 14px;
+            border: 1px solid #e0e0e0; border-radius: 12px;
+            background: #fff; font-family: inherit; font-size: 0.95rem;
+            outline: none; transition: 0.2s;
+        }
+        input:focus, select:focus {
+            border-color: #8a2be2;
+            box-shadow: 0 0 0 3px rgba(138,43,226,0.12);
+        }
+        .btn {
+            height: 48px; padding: 0 18px; border: none; border-radius: 12px;
+            font-family: inherit; font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary {
+            background: #00C853; color: #fff; width: 100%; margin-top: 6px;
+        }
+        .btn-primary:disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
+        .btn-primary:not(:disabled):hover { background: #00b34a; transform: translateY(-1px); }
+        .btn-text { background: #f0f0f0; color: #333; }
+        .btn-text:hover { background: #e4e4e4; }
+
+        /* FULL SCREEN TEXT */
+        .text-overlay {
+            position: fixed; inset: 0; background: #fff; z-index: 2000;
+            display: none; flex-direction: column;
+            padding: 18px 16px 90px; overflow-y: auto;
+        }
+        .text-overlay.active { display: flex; }
+        .text-overlay-content { max-width: 680px; margin: 0 auto; width: 100%; }
+        .text-overlay-content h2 {
+            font-family: 'Poppins', sans-serif; font-size: 1.35rem;
+            font-weight: 700; margin-bottom: 18px;
+        }
+        #overlay-text { font-size: 1.05rem; line-height: 1.75; color: #222; }
+        #overlay-text p { margin-bottom: 16px; }
+        .dict-word {
+            text-decoration: underline; text-decoration-color: #8a2be2;
+            text-underline-offset: 3px; color: #5e17a8; cursor: pointer; font-weight: 500;
+        }
+        .dict-word:hover { background: rgba(138,43,226,0.1); border-radius: 3px; }
+        .close-text-btn {
+            position: fixed; bottom: 22px; right: 18px;
+            height: 52px; padding: 0 22px; background: #111; color: #fff;
+            border: none; border-radius: 14px; font-family: inherit;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25); z-index: 2100;
+        }
+
+        /* QUIZ */
+        .progress-map {
+            display: flex; justify-content: center; gap: 8px; margin-bottom: 16px;
+        }
+        .progress-dot {
+            width: 10px; height: 10px; border-radius: 50%; background: #ddd;
+        }
+        .progress-dot.active { background: #8a2be2; }
+        .question-container {
+            background: #fff; border-radius: 16px; padding: 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .question-title {
+            font-family: 'Poppins', sans-serif; font-size: 1.05rem;
+            font-weight: 700; margin-bottom: 14px; line-height: 1.4;
+        }
+        .questions-display {
+            white-space: pre-wrap; font-size: 0.92rem; line-height: 1.55;
+            background: #f9f9fb; padding: 14px; border-radius: 12px;
+            max-height: 55vh; overflow-y: auto; border: 1px solid #eee;
+        }
+        .nav-buttons {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 18px; gap: 10px;
+        }
+        .nav-right { display: flex; gap: 8px; }
+
+        /* RESULT */
+        #result-screen { text-align: center; }
+        .final-score {
+            font-family: 'Poppins', sans-serif; font-size: 2.3rem;
+            font-weight: 800; color: #00C853; margin: 14px 0;
+        }
+
+        /* DICTIONARY MODAL */
+        .dict-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+            z-index: 3000; display: none; justify-content: center;
+            align-items: flex-end; padding: 16px;
+        }
+        .dict-modal-overlay.active { display: flex; }
+        .dict-modal {
+            background: #fff; width: 100%; max-width: 480px; max-height: 75vh;
+            border-radius: 18px 18px 0 0; overflow: hidden;
+            display: flex; flex-direction: column;
+            animation: slideUp 0.28s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .dict-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 18px; border-bottom: 1px solid #eee;
+        }
+        .dict-modal-header h3 { font-family: 'Poppins', sans-serif; font-size: 1.1rem; }
+        .dict-close-btn {
+            background: none; border: none; font-size: 1.55rem;
+            cursor: pointer; color: #666; line-height: 1;
+        }
+        .dict-modal-text {
+            padding: 16px 18px; overflow-y: auto; font-size: 0.95rem; line-height: 1.6;
+        }
+        .dict-modal-text p { margin-bottom: 9px; }
+        .highlight-word { background: #f3e9ff; padding: 2px 6px; border-radius: 4px; }
+
+        @media (max-width: 480px) {
+            .app-container { margin-top: 54px; }
+            .close-text-btn { bottom: 16px; right: 14px; height: 50px; }
+        }
+    </style>
+</head>
+<body>
+    <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
+
+    <div class="app-container">
+        <!-- START -->
+        <div id="start-screen" class="screen active">
+            <h1>Reading Comprehension</h1>
+            <p>Choose a test and enter your Telegram username</p>
+
+            <div class="form-group">
+                <label for="telegram-user">Telegram Username</label>
+                <input type="text" id="telegram-user" placeholder="@username">
+            </div>
+
+            <div class="form-group">
+                <label for="test-select">Select Test</label>
+                <select id="test-select">
+                    <option value="" disabled selected>Loading tests...</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" id="start-btn" disabled>Continue</button>
+        </div>
+
+        <!-- FULL SCREEN TEXT -->
+        <div id="text-overlay" class="text-overlay">
+            <div class="text-overlay-content">
+                <h2 id="overlay-title"></h2>
+                <div id="overlay-text"></div>
+            </div>
+            <button id="close-text-btn" class="close-text-btn">✕ Close Text</button>
+        </div>
+
+        <!-- QUIZ -->
+        <div id="quiz-screen" class="screen">
+            <div class="progress-map" id="progress-map"></div>
+            <div class="question-container">
+                <div class="question-title" id="q-title"></div>
+                <div class="questions-display" id="questions-display"></div>
+                <div class="nav-buttons">
+                    <button class="btn" id="prev-btn" style="visibility:hidden;">Previous</button>
+                    <div class="nav-right">
+                        <button class="btn btn-text" id="text-btn">📄 Text</button>
+                        <button class="btn btn-primary" id="next-btn">Finish</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT -->
+        <div id="result-screen" class="screen">
+            <h1>Test Finished!</h1>
+            <p id="result-message">Thank you for completing the test.</p>
+            <div class="final-score" id="final-score">—</div>
+            <p style="color:#666;font-size:0.9rem;margin:12px 0;">Your answers have been recorded.</p>
+            <button class="btn btn-primary" id="restart-btn" style="margin-top:10px;">Choose Another Test</button>
+        </div>
+    </div>
+
+    <!-- Dictionary Modal -->
+    <div id="dict-modal-overlay" class="dict-modal-overlay">
+        <div class="dict-modal">
+            <div class="dict-modal-header">
+                <h3>Test Dictionary</h3>
+                <button class="dict-close-btn" id="dict-close-btn">×</button>
+            </div>
+            <div class="dict-modal-text" id="dict-modal-text"></div>
+        </div>
+    </div>
+
+    <script src="unified-test.js"></script>
+</body>
+</html>
