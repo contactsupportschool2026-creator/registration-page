@@ -4,87 +4,400 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reading Comprehension Tests</title>
+  
+  <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- jsPDF Library for Dynamic PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Fira Code',monospace;background:#f8f9fa;color:#111;min-height:100vh;padding:12px;display:flex;justify-content:center}
-    .quiz-logo{position:fixed;top:12px;left:12px;width:48px;height:48px;border-radius:10px;object-fit:cover;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-    .app-container{width:100%;max-width:520px;margin-top:60px}
-    .screen{display:none;animation:fadeIn .4s ease}
-    .screen.active{display:block}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    h1{font-family:'Poppins',sans-serif;font-size:1.7rem;font-weight:800;margin-bottom:8px;text-align:center}
-    #start-screen p{text-align:center;color:#666;font-size:.9rem;margin-bottom:24px}
-    .form-group{margin-bottom:16px}
-    .form-group label{display:block;font-size:.8rem;font-weight:500;margin-bottom:6px;color:#444}
-    input[type=text],select{width:100%;height:48px;padding:0 14px;border:1px solid #e0e0e0;border-radius:12px;background:#fff;font-family:inherit;font-size:.95rem;outline:none;transition:.2s}
-    input:focus,select:focus{border-color:#8a2be2;box-shadow:0 0 0 3px rgba(138,43,226,.15)}
-    .btn{height:48px;padding:0 20px;border:none;border-radius:12px;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:.2s}
-    .btn-primary{background:#00C853;color:#fff;width:100%;margin-top:8px}
-    .btn-primary:disabled{background:#e0e0e0;color:#999;cursor:not-allowed}
-    .btn-primary:not(:disabled):hover{background:#00b34a;transform:translateY(-1px)}
-    .btn-text{background:#f0f0f0;color:#333}
-    .btn-text:hover{background:#e4e4e4}
+    :root {
+        --bg-color: #ffffff;
+        --text-color: #000000;
+        --primary-green: #004d40;
+        --light-green: #e0f2f1;
+        --btn-bg: rgba(0, 77, 64, 0.08);
+        --btn-hover: rgba(0, 77, 64, 0.15);
+        --card-bg: rgba(0, 77, 64, 0.02);
+        --border-radius: 16px;
+        --transition-speed: 0.4s;
+        --wrong-color: rgba(255, 50, 50, 0.8);
+    }
 
-    /* FULL SCREEN TEXT */
-    .text-overlay{position:fixed;inset:0;background:#fff;z-index:2000;display:none;flex-direction:column;padding:20px 16px 90px;overflow-y:auto}
-    .text-overlay.active{display:flex}
-    .text-overlay-content{max-width:680px;margin:0 auto;width:100%}
-    .text-overlay-content h2{font-family:'Poppins',sans-serif;font-size:1.45rem;font-weight:700;margin-bottom:20px;color:#111}
-    #overlay-text{font-size:1.05rem;line-height:1.75;color:#222}
-    #overlay-text p{margin-bottom:16px}
-    .dict-word{text-decoration:underline;text-decoration-color:#8a2be2;text-underline-offset:3px;color:#5e17a8;cursor:pointer;font-weight:500}
-    .dict-word:hover{background:rgba(138,43,226,.1);border-radius:3px}
-    .close-text-btn{position:fixed;bottom:24px;right:20px;height:52px;padding:0 22px;background:#111;color:#fff;border:none;border-radius:14px;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:2100}
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Fira Code', monospace; }
 
-    /* QUIZ */
-    .progress-map{display:flex;justify-content:center;gap:8px;margin-bottom:20px}
-    .progress-dot{width:10px;height:10px;border-radius:50%;background:#ddd;transition:.2s}
-    .progress-dot.active{background:#8a2be2}
-    .question-container{background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-    .question-title{font-family:'Poppins',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:18px;line-height:1.4}
-    .sub-question{margin-bottom:18px}
-    .sub-question p{font-size:.95rem;margin-bottom:10px;line-height:1.45}
-    .options-grid,.options-row{display:flex;flex-direction:column;gap:8px}
-    .option-btn{text-align:left;padding:12px 14px;border:1px solid #e5e5e5;border-radius:10px;background:#fafafa;font-family:inherit;font-size:.9rem;cursor:pointer;transition:.15s}
-    .option-btn:hover{border-color:#c9a0ff;background:#f9f5ff}
-    .option-btn.selected{border-color:#8a2be2;background:#f3e9ff;color:#5e17a8;font-weight:500}
-    textarea{width:100%;padding:12px;border:1px solid #e0e0e0;border-radius:10px;font-family:inherit;font-size:.9rem;resize:vertical;min-height:70px}
-    .nav-buttons{display:flex;justify-content:space-between;align-items:center;margin-top:22px;gap:10px}
-    .nav-right{display:flex;gap:8px}
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        padding-top: 70px; /* Space for fixed logo */
+    }
 
-    /* RESULT */
-    #result-screen{text-align:center}
-    .final-score{font-family:'Poppins',sans-serif;font-size:2.4rem;font-weight:800;color:#00C853;margin:16px 0}
-    .score-breakdown{background:#fff;border-radius:14px;padding:16px;text-align:left;margin:16px 0;box-shadow:0 2px 10px rgba(0,0,0,.05)}
-    .breakdown-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:.9rem}
-    .breakdown-row:last-child{border-bottom:none}
+    /* Fixed Top Left Logo */
+    .quiz-logo {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        width: 50px;
+        height: auto;
+        border-radius: 8px;
+        z-index: 100;
+    }
 
-    /* DICTIONARY */
-    .dict-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:3000;display:none;justify-content:center;align-items:flex-end;padding:16px}
-    .dict-modal-overlay.active{display:flex}
-    .dict-modal{background:#fff;width:100%;max-width:480px;max-height:75vh;border-radius:18px 18px 0 0;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .3s ease}
-    @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-    .dict-modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #eee}
-    .dict-modal-header h3{font-family:'Poppins',sans-serif;font-size:1.1rem}
-    .dict-close-btn{background:none;border:none;font-size:1.6rem;cursor:pointer;color:#666;line-height:1}
-    .dict-modal-text{padding:16px 18px;overflow-y:auto;font-size:.95rem;line-height:1.6}
-    .dict-modal-text p{margin-bottom:10px}
-    .highlight-word{background:#f3e9ff;padding:2px 6px;border-radius:4px}
+    .app-container {
+        width: 100%;
+        max-width: 800px;
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: var(--border-radius);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+        position: relative;
+        overflow: hidden;
+    }
 
-    @media(max-width:480px){.app-container{margin-top:56px}.close-text-btn{bottom:18px;right:16px;height:50px}}
+    /* Screen Management */
+    .screen { display: none; flex-direction: column; gap: 24px; animation: fadeIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .screen.active { display: flex; }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Typography & Elements */
+    h1 {
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.8rem;
+        font-weight: 800;
+        text-align: center;
+        color: var(--primary-green);
+        letter-spacing: -0.5px;
+    }
+
+    p { font-size: 0.9rem; color: #555; text-align: center; line-height: 1.5; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--primary-green);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+    }
+
+    input[type="text"], select {
+        width: 100%;
+        height: 48px;
+        padding: 0 14px;
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 12px;
+        background: #fff;
+        font-family: inherit;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border var(--transition-speed);
+    }
+
+    input[type="text"]:focus, select:focus { border-color: var(--primary-green); }
+
+    /* Buttons */
+    .btn {
+        height: 48px;
+        padding: 0 20px;
+        border: none;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--transition-speed);
+        text-align: center;
+        text-decoration: none;
+        background: var(--btn-bg);
+        color: var(--primary-green);
+    }
+
+    .btn:hover { background: var(--btn-hover); transform: translateY(-2px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+        background: var(--primary-green);
+        color: #fff;
+        width: 100%;
+        margin-top: 8px;
+    }
+    .btn-primary:hover { background: #003831; }
+
+    .btn-text { background: var(--btn-bg); color: var(--primary-green); }
+    .btn-text:hover { background: var(--btn-hover); }
+
+    .btn-download {
+        background: transparent;
+        border: 1px solid var(--primary-green);
+        color: var(--primary-green);
+        width: 100%;
+        margin-top: 8px;
+    }
+    .btn-download:hover { background: var(--light-green); }
+
+    /* ===== FULL SCREEN TEXT OVERLAY (Frameless Style) ===== */
+    .text-overlay {
+        position: fixed;
+        inset: 0;
+        background: #ffffff;
+        z-index: 2000;
+        display: none;
+        flex-direction: column;
+        padding: 30px 20px 90px;
+        overflow-y: auto;
+    }
+    .text-overlay.active { display: flex; }
+
+    .text-overlay-content { max-width: 800px; margin: 0 auto; width: 100%; }
+    .text-overlay-content h2 {
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--primary-green);
+    }
+
+    #overlay-text {
+        font-size: 1rem;
+        line-height: 1.75;
+        color: #333;
+    }
+    #overlay-text p {
+        text-align: justify;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600; 
+        margin-bottom: 16px;
+    }
+
+    .dict-word {
+        text-decoration: underline;
+        text-decoration-color: var(--primary-green);
+        text-underline-offset: 3px;
+        color: var(--primary-green);
+        cursor: pointer;
+        font-weight: 700;
+    }
+    .dict-word:hover { background: var(--light-green); border-radius: 3px; }
+
+    .close-text-btn {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 52px;
+        padding: 0 30px;
+        background: var(--primary-green);
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+        z-index: 2100;
+    }
+    .close-text-btn:active { transform: scale(0.97) translateX(-50%); }
+
+    /* ===== QUIZ SCREEN ===== */
+    .progress-map {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 20px;
+    }
+    .progress-dot {
+        flex: 1;
+        height: 6px;
+        background: #eee;
+        border-radius: 3px;
+        transition: background 0.4s ease;
+    }
+    .progress-dot.active { background: var(--primary-green); }
+
+    .question-container {
+        background: #fff;
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,77,64,0.05);
+        min-height: 350px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .question-content-wrapper { flex-grow: 1; animation: slideIn 0.5s ease forwards; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+    .question-title {
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #000;
+        margin-bottom: 20px;
+        line-height: 1.4;
+    }
+
+    .sub-question { margin-bottom: 20px; }
+    .sub-question p {
+        text-align: left;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        color: #333;
+        font-size: 0.95rem;
+        margin-bottom: 8px;
+    }
+
+    .options-grid { display: flex; flex-direction: column; gap: 10px; }
+    .options-row { display: flex; gap: 10px; }
+
+    .option-btn {
+        background: #fff;
+        border: 1px solid #eee;
+        text-align: center;
+        color: #333;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        padding: 12px 16px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex: 1;
+    }
+    .option-btn:hover { border-color: var(--primary-green); background: var(--light-green); }
+    .option-btn.selected { background: var(--primary-green); color: #fff; border-color: var(--primary-green); }
+
+    textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 12px;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border var(--transition-speed);
+        min-height: 70px;
+        resize: vertical;
+    }
+    textarea:focus { border-color: var(--primary-green); }
+
+    .nav-buttons {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 30px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+    }
+    .nav-right { display: flex; gap: 10px; }
+
+    /* ===== RESULT ===== */
+    #result-screen { text-align: center; }
+    .final-score {
+        font-family: 'Poppins', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--primary-green);
+        margin: 20px 0;
+    }
+
+    .score-breakdown {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        text-align: left;
+    }
+    .breakdown-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+        font-family: 'Poppins', sans-serif;
+    }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-label { font-weight: 600; color: #555; font-size: 0.9rem; }
+    .breakdown-score { font-weight: 800; color: var(--primary-green); }
+
+    .telegram-placeholder { color: #999; font-size: 0.8rem; text-align: center; margin-bottom: 15px; }
+    .action-buttons { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+
+    /* ===== DICTIONARY MODAL ===== */
+    .dict-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 3000;
+        display: none;
+        justify-content: center;
+        align-items: flex-end;
+        padding: 20px;
+    }
+    .dict-modal-overlay.active { display: flex; }
+
+    .dict-modal {
+        background: #fff;
+        width: 100%;
+        max-width: 500px;
+        max-height: 75vh;
+        border-radius: 16px 16px 0 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .dict-modal-header {
+        background: var(--primary-green);
+        color: #fff;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .dict-modal-header h3 { font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 700; }
+    .dict-close-btn { background: transparent; border: none; color: #fff; font-size: 1.8rem; cursor: pointer; line-height: 1; }
+
+    .dict-modal-text { padding: 20px; overflow-y: auto; font-family: 'Poppins', sans-serif; font-size: 0.9rem; line-height: 1.6; color: #333; }
+    .dict-modal-text p { text-align: left; margin-bottom: 12px; }
+    .highlight-word { background: var(--light-green); padding: 2px 6px; border-radius: 4px; }
+
+    /* Floating Bubbles Animation */
+    .bubble-container { position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); pointer-events: none; z-index: 1000; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: 80%; }
+    .floating-bubble { width: 20px; height: 20px; border-radius: 50%; opacity: 0; animation: floatUp 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .floating-bubble.correct { background: var(--primary-green); border: 1px solid #003831; }
+    .floating-bubble.wrong { background: var(--wrong-color); border: 1px solid #cc0000; }
+    @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-200px) scale(1.5); opacity: 0; } }
+
+    /* Mobile Edge to Edge */
+    @media (max-width: 768px) {
+        body { padding: 10px; padding-top: 70px; }
+        .app-container { padding: 15px; border-radius: 12px; }
+        .close-text-btn { bottom: 18px; height: 50px; }
+    }
   </style>
 </head>
 <body>
   <img src="https://z-cdn-media.chatglm.cn/files/9a0973ea-6541-483a-a5e5-98f7c5d75ea6.jpg?auth_key=1886308142-852474841a6d4bc0a779e722128a4a4a-0-51c482fb78b1239fbb5164549d51f169" alt="Logo" class="quiz-logo">
 
   <div class="app-container">
-    <!-- START -->
+    <!-- START SCREEN -->
     <div id="start-screen" class="screen active">
       <h1>Reading Comprehension</h1>
-      <p>Choose a test and enter your Telegram username</p>
+      <p>Choose a test, enter your Telegram username, and start.</p>
       <div class="form-group">
         <label for="telegram-user">Telegram Username</label>
         <input type="text" id="telegram-user" placeholder="@username">
@@ -107,7 +420,7 @@
       <button id="close-text-btn" class="close-text-btn">✕ Close Text</button>
     </div>
 
-    <!-- QUIZ -->
+    <!-- QUIZ SCREEN -->
     <div id="quiz-screen" class="screen">
       <div class="progress-map" id="progress-map"></div>
       <div class="question-container">
@@ -122,15 +435,16 @@
       </div>
     </div>
 
-    <!-- RESULT -->
+    <!-- RESULT SCREEN -->
     <div id="result-screen" class="screen">
       <h1>Test Finished!</h1>
       <p id="result-message">Calculating your results...</p>
       <div class="final-score" id="final-score">0/100</div>
       <div class="score-breakdown" id="score-breakdown"></div>
       <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved ...</p>
-      <div class="action-buttons" style="margin-top:16px">
+      <div class="action-buttons">
         <button class="btn btn-primary" id="restart-btn">Choose Another Test</button>
+        <button class="btn btn-download" id="pdf-btn">⬇ Download Answers & Review (PDF)</button>
       </div>
     </div>
   </div>
@@ -148,4 +462,4 @@
 
   <script src="unified-test.js"></script>
 </body>
-</html>
+  </html>
