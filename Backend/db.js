@@ -1,22 +1,7 @@
 /**
- * db.js — Shared database helpers for server.js and bot.js
- *
- * Data persists to GitHub: each write auto-commits to the repo.
- * Local filesystem is used for speed; GitHub is the source of truth.
- *
- * Cross-process safety strategy:
- *  1. LOCK  — acquire an exclusive .lock file before any read-modify-write cycle.
- *             Uses the atomic 'wx' flag (create-or-fail) so only one process
- *             enters the critical section at a time.
- *             Lock file stores { pid, timestamp } for stale-lock recovery:
- *             if the lock is older than LOCK_TTL_MS or belongs to a dead PID,
- *             it is removed automatically.
- *  2. WRITE — write to a .tmp file first, then atomically rename it to the real
- *             path, so a crash mid-write never leaves a partial/corrupt file.
- *  3. GIT  — after every successful write, sync to GitHub (non-blocking).
- *  4. RULE  — callbacks passed to withDB() must be fast and DB-only.
- *             NEVER make network calls (Telegram, Chargily, etc.) inside a
- *             withDB() callback — do all network I/O after withDB() returns.
+ * db.js — Shared database helpers
+ * Supports both old array format and new object format:
+ * { students: [], activeTests: { scientific: null, literature: null } }
  */
 
 const fs   = require('fs');
@@ -28,8 +13,6 @@ const TMP_PATH  = DB_PATH + '.tmp';
 
 const LOCK_TTL_MS = 30_000;
 
-// ─── GitHub Sync ─────────────────────────────────────────────────────────────
-
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO  = process.env.GITHUB_REPO || 'contactsupportschool2026-creator/registration-page';
 
@@ -37,10 +20,7 @@ let syncPromise = Promise.resolve();
 
 function syncToGitHub() {
     syncPromise = syncPromise.then(async () => {
-        if (!GITHUB_TOKEN) {
-            console.log('[db] GITHUB_TOKEN not set, skipping GitHub sync');
-            return;
-        }
+        if (!GITHUB_TOKEN) return;
         try {
             const axios   = require('axios');
             const content = fs.readFileSync(DB_PATH, 'utf-8');
@@ -74,8 +54,6 @@ function syncToGitHub() {
     return syncPromise;
 }
 
-// ─── Lock helpers ─────────────────────────────────────────────────────────────
-
 function isPidAlive(pid) {
     try { process.kill(pid, 0); return true; }
     catch (_) { return false; }
@@ -86,19 +64,13 @@ function clearStaleLock() {
         const raw = fs.readFileSync(LOCK_PATH, 'utf-8');
         const { pid, timestamp } = JSON.parse(raw);
         const age = Date.now() - timestamp;
-        if (age > LOCK_TTL_MS) {
-            console.warn(`[db] Removing stale lock: age ${age}ms > TTL (pid ${pid})`);
-            fs.unlinkSync(LOCK_PATH);
-            return;
-        }
-        if (!isPidAlive(pid)) {
-            console.warn(`[db] Removing stale lock: pid ${pid} is no longer running`);
+        if (age > LOCK_TTL_MS || !isPidAlive(pid)) {
             fs.unlinkSync(LOCK_PATH);
         }
     } catch (e) {
-        if (e.code === 'ENOENT') return;
-        console.warn(`[db] Lock file unreadable, removing: ${e.message}`);
-        try { fs.unlinkSync(LOCK_PATH); } catch (_) {}
+        if (e.code !== 'ENOENT') {
+            try { fs.unlinkSync(LOCK_PATH); } catch (_) {}
+        }
     }
 }
 
@@ -114,30 +86,52 @@ async function acquireLock(maxRetries = 100, retryDelay = 200) {
             await new Promise(r => setTimeout(r, retryDelay));
         }
     }
-    throw new Error(`Could not acquire DB lock after ${maxRetries} retries (~${(maxRetries * retryDelay) / 1000}s). Lock path: ${LOCK_PATH}`);
+    throw new Error(`Could not acquire DB lock after ${maxRetries} retries`);
 }
 
 function releaseLock() {
     try { fs.unlinkSync(LOCK_PATH); } catch (_) {}
 }
 
-// ─── Initialise ───────────────────────────────────────────────────────────────
-
 function initializeDB() {
     if (!fs.existsSync(DB_PATH)) {
-        console.log('[db] Creating new database.json in Backend/...');
-        fs.writeFileSync(DB_PATH, JSON.stringify([], null, 2));
-        console.log('[db] Database initialized successfully');
+        const initial = {
+            students: [],
+            activeTests: {
+                scientific: null,
+                literature: null
+            }
+        };
+        fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
+        console.log('[db] Database initialized with new structure');
     }
-    console.log('[db] Database path:', DB_PATH, '| repo:', GITHUB_REPO);
 }
 
-// ─── Core API ─────────────────────────────────────────────────────────────────
+// Normalize any old array format into the new object format
+function normalizeDB(raw) {
+    if (Array.isArray(raw)) {
+        return {
+            students: raw,
+            activeTests: {
+                scientific: null,
+                literature: null
+            }
+        };
+    }
+    if (!raw.activeTests) {
+        raw.activeTests = { scientific: null, literature: null };
+    }
+    if (!raw.students) {
+        raw.students = [];
+    }
+    return raw;
+}
 
 async function readDB() {
     await acquireLock();
     try {
-        return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+        const raw = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+        return normalizeDB(raw);
     } finally {
         releaseLock();
     }
@@ -146,7 +140,8 @@ async function readDB() {
 async function withDB(fn) {
     await acquireLock();
     try {
-        const db     = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+        const raw = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+        const db = normalizeDB(raw);
         const result = fn(db);
         fs.writeFileSync(TMP_PATH, JSON.stringify(db, null, 2));
         fs.renameSync(TMP_PATH, DB_PATH);
