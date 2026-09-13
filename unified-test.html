@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Reading Comprehension Tests</title>
   
-  <!-- Fonts: Fira Code for UI, Poppins for Bold Questions -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
   
-  <!-- jsPDF Library for Dynamic PDF Generation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
@@ -38,11 +36,10 @@
         align-items: flex-start;
         min-height: 100vh;
         padding: 20px;
-        padding-top: 70px; /* Space for fixed logo */
-        padding-bottom: 80px; /* Space for fixed footer */
+        padding-top: 70px;
+        padding-bottom: 80px;
     }
 
-    /* Fixed Top Left Logo */
     .quiz-logo {
         position: fixed;
         top: 15px;
@@ -55,7 +52,7 @@
 
     .app-container {
         width: 100%;
-        max-width: 800px; /* Good for laptops, tablets, and phones */
+        max-width: 800px;
         background: var(--card-bg);
         padding: 30px;
         border-radius: var(--border-radius);
@@ -65,7 +62,6 @@
         margin-bottom: 20px;
     }
 
-    /* Screen Management */
     .screen { display: none; flex-direction: column; gap: 24px; animation: fadeIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     .screen.active { display: flex; }
 
@@ -74,7 +70,6 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Typography & Elements */
     h1 {
         font-family: 'Poppins', sans-serif;
         font-size: 1.8rem;
@@ -97,7 +92,7 @@
         margin-bottom: 6px;
     }
 
-    input[type="text"], select {
+    input[type="text"] {
         width: 100%;
         height: 48px;
         padding: 0 14px;
@@ -110,16 +105,15 @@
         transition: border var(--transition-speed);
     }
 
-    input[type="text"]:focus, select:focus { border-color: var(--primary-green); }
+    input[type="text"]:focus { border-color: var(--primary-green); }
 
-    /* Buttons */
     .btn {
-        height: 42px; /* Slightly smaller */
+        height: 42px;
         padding: 0 16px;
         border: none;
         border-radius: 10px;
         font-family: inherit;
-        font-size: 0.85rem; /* Smaller font */
+        font-size: 0.85rem;
         font-weight: 600;
         cursor: pointer;
         transition: all var(--transition-speed);
@@ -135,20 +129,16 @@
     .btn-primary {
         background: var(--primary-green);
         color: #fff;
+        width: 100%;
+        height: 48px;
+        font-size: 0.95rem;
     }
     .btn-primary:hover { background: #003831; }
 
     .btn-text { background: var(--btn-bg); color: var(--primary-green); }
     .btn-text:hover { background: var(--btn-hover); }
 
-    .btn-download {
-        background: transparent;
-        border: 1px solid var(--primary-green);
-        color: var(--primary-green);
-    }
-    .btn-download:hover { background: var(--light-green); }
-
-    /* ===== FULL SCREEN TEXT OVERLAY (Frameless Style) ===== */
+    /* FULL SCREEN TEXT */
     .text-overlay {
         position: fixed;
         inset: 0;
@@ -156,7 +146,7 @@
         z-index: 2000;
         display: none;
         flex-direction: column;
-        padding: 30px 20px 90px; /* Padding bottom for close button */
+        padding: 30px 20px 90px;
         overflow-y: auto;
     }
     .text-overlay.active { display: flex; }
@@ -192,7 +182,6 @@
     }
     .dict-word:hover { background: var(--light-green); border-radius: 3px; }
 
-    /* Fixed Close Text Button */
     .close-text-btn {
         position: fixed;
         bottom: 0;
@@ -214,7 +203,7 @@
     }
     .close-text-btn:active { background: #003831; }
 
-    /* ===== QUIZ SCREEN ===== */
+    /* QUIZ */
     .progress-map {
         display: flex;
         gap: 6px;
@@ -294,7 +283,6 @@
     }
     textarea:focus { border-color: var(--primary-green); }
 
-    /* ===== FIXED FOOTER NAVIGATION ===== */
     .nav-footer {
         position: fixed;
         bottom: 0;
@@ -322,7 +310,6 @@
 
     .nav-right { display: flex; gap: 10px; }
 
-    /* ===== RESULT ===== */
     #result-screen { text-align: center; }
     .final-score {
         font-family: 'Poppins', sans-serif;
@@ -355,7 +342,6 @@
     .action-buttons { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
     .action-buttons .btn { width: 100%; height: 48px; font-size: 0.9rem; }
 
-    /* ===== DICTIONARY MODAL ===== */
     .dict-modal-overlay {
         position: fixed;
         inset: 0;
@@ -398,19 +384,14 @@
     .dict-modal-text p { text-align: left; margin-bottom: 12px; }
     .highlight-word { background: var(--light-green); padding: 2px 6px; border-radius: 4px; }
 
-    /* Floating Bubbles Animation */
-    .bubble-container { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); pointer-events: none; z-index: 1000; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: 80%; }
-    .floating-bubble { width: 20px; height: 20px; border-radius: 50%; opacity: 0; animation: floatUp 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    .floating-bubble.correct { background: var(--primary-green); border: 1px solid #003831; }
-    .floating-bubble.wrong { background: var(--wrong-color); border: 1px solid #cc0000; }
-    @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-200px) scale(1.5); opacity: 0; } }
-
-    /* Mobile Edge to Edge */
-    @media (max-width: 768px) {
-        body { padding: 10px; padding-top: 70px; padding-bottom: 80px; }
-        .app-container { padding: 15px; border-radius: 12px; }
-        .nav-footer { padding: 8px 15px; }
-        .btn { padding: 0 12px; }
+    .message-box {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+        color: #555;
     }
   </style>
 </head>
@@ -421,18 +402,16 @@
     <!-- START SCREEN -->
     <div id="start-screen" class="screen active">
       <h1>Reading Comprehension</h1>
-      <p>Choose a test, enter your Telegram username, and start.</p>
+      <p>Enter your Telegram username to start the assigned test</p>
+      
       <div class="form-group">
         <label for="telegram-user">Telegram Username</label>
         <input type="text" id="telegram-user" placeholder="@username">
       </div>
-      <div class="form-group">
-        <label for="test-select">Select Test</label>
-        <select id="test-select">
-          <option value="" disabled selected>Choose a test...</option>
-        </select>
-      </div>
+      
       <button class="btn btn-primary" id="start-btn" disabled>Continue</button>
+      
+      <div id="status-message" class="message-box" style="display:none; margin-top:20px;"></div>
     </div>
 
     <!-- FULL SCREEN TEXT -->
@@ -458,16 +437,15 @@
       <p id="result-message">Calculating your results...</p>
       <div class="final-score" id="final-score">0/100</div>
       <div class="score-breakdown" id="score-breakdown"></div>
-      <p class="telegram-placeholder" id="telegram-status">Your score is confirmed and saved ...</p>
+      <p class="telegram-placeholder" id="telegram-status">Your score is being sent...</p>
       <div class="action-buttons">
-        <button class="btn btn-primary" id="restart-btn">Choose Another Test</button>
-        <button class="btn btn-download" id="pdf-btn">Download Answers & Review (PDF)</button>
+        <button class="btn btn-primary" id="restart-btn">Back to Start</button>
       </div>
     </div>
   </div>
 
-  <!-- FIXED FOOTER NAVIGATION (Always visible during quiz) -->
-  <div class="nav-footer" id="nav-footer" style="display: none;">
+  <!-- Fixed Footer Navigation (only visible during quiz) -->
+  <div class="nav-footer" id="nav-footer" style="display:none;">
     <div class="nav-footer-inner">
       <button class="btn" id="prev-btn" style="visibility:hidden">Previous</button>
       <div class="nav-right">

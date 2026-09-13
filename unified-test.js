@@ -1,5 +1,5 @@
 /* =========================================================
-   UNIFIED INTERACTIVE TEST ENGINE
+   UNIFIED TEST ENGINE - Auto-assigned test version
    ========================================================= */
 
 const ALL_TESTS = {
@@ -52,15 +52,7 @@ Adapted from https://smallbusiness.chron.com/ethics-`,
         title: "4. Choose the most appropriate title",
         options: ["a) Decision making in companies.","b) Productivity factors in business.","c) Ethics at the workplace."]
       }
-    ],
-    answers: {
-      "1a":"human relationships","1b":"unethical practices","1c":"affects work quality",
-      order:{"2b":1,"2c":2,"2a":3},
-      "3a":["discrimination","fraud","theft","harassment"],
-      "3b":["productivity","communicate","easier"],
-      "3c":["yes","promotions","pay raise"],
-      "4":"c) Ethics at the workplace."
-    }
+    ]
   },
 
   "1033": {
@@ -97,29 +89,8 @@ http://www.transparency.org/topic/detail/health`,
           {id:"3a",text:"a. What unethical behaviours are committed by the medical staff?"},
           {id:"3b",text:"b. How can governments fight funds disappearance?"},
           {id:"3c",text:"c. Is it possible for people to improve health services at the local level?"}
-        ]},
-      {type:"para-match", title:"4. In which paragraph are the following ideas mentioned",
-        questions:[
-          {id:"4a",text:"a: health workers should be well paid in order to stop bribery."},
-          {id:"4b",text:"b: some patient’s families give bribery to treat their relative."}
-        ], options:["1","2","3","4"]},
-      {type:"text-group", title:"5. What or who do the underlined words refer to in the text?",
-        questions:[
-          {id:"5a",text:"a) who (§2) ………"},
-          {id:"5b",text:"b) we (§4) ………"}
         ]}
-    ],
-    answers: {
-      "1":"a: a web site.",
-      "2a":"True","2b":"True","2c":"False","2d":"False",
-      "3a":["unofficial fees","bribes","medication"],
-      "3b":["publish","budgets","financial information","truck funds","prevent"],
-      "3c":["yes","demand accountability","scrutinise","budgets"],
-      "4a":"3",
-      "4b":"1",
-      "5a":["ministers","administrators"],
-      "5b":["people","readers"]
-    }
+    ]
   },
 
   "1034": {
@@ -156,25 +127,8 @@ Adapted from Crane, A., & Matten, D. (2016). Business Ethics.`,
           {id:"3b",text:"b- How do ethical businesses treat workers?"},
           {id:"3c",text:"c- What are some examples of unethical practices?"},
           {id:"3d",text:"d- Why is it important for businesses to act ethically?"}
-        ]},
-      {type:"mcq-single", title:"4. Choose the general idea of the text.", options:["a- How businesses increase profits","b- Why competition is necessary for business","c- The importance of ethics in business"]},
-      {type:"text-group", title:"5. Find what or who the underlined words in the text refer to.",
-        questions:[
-          {id:"5a",text:"a) it (§1) ………"},
-          {id:"5b",text:"b) their (§2) ………"}
         ]}
-    ],
-    answers: {
-      "1":"a) an extract from a book",
-      "2a":"False","2b":"True","2c":"True","2d":"False",
-      "3a":["study","right","wrong","commerce","responsibly"],
-      "3b":["fair wages","safe working conditions","impact"],
-      "3c":["false advertising","bribery","cheap labor","unsafe conditions"],
-      "3d":["trust","long-term success","society","economy"],
-      "4":"c- The importance of ethics in business",
-      "5a":["study","business ethics"],
-      "5b":["some companies","companies"]
-    }
+    ]
   },
 
   "1035": {
@@ -202,46 +156,8 @@ Adapted from Britannica 2009`,
           {id:"1b",text:"b) Sailors from Mesopotamia arrived at the Indus valley."},
           {id:"1c",text:"c) The Indus valley cities and towns were well-protected."},
           {id:"1d",text:"d) The Indus people's culture was not very developed."}
-        ]},
-      {type:"para-match", title:"2. Identify the paragraphs in which the following ideas are mentioned.",
-        questions:[
-          {id:"2a",text:"a) ancient Indus people relied on agriculture."},
-          {id:"2b",text:"b) the Indus left many historical and artistic works."}
-        ], options:["1","2","3"]},
-      {type:"text-group", title:"3. Answer the following questions according to the text.",
-        questions:[
-          {id:"3a",text:"a) Where did the Indus civilization rise?"},
-          {id:"3b",text:"b) Which inventions did the Indians share with the Sumerians?"},
-          {id:"3c",text:"c) Mention two of the Indus civilization achievements."}
-        ]},
-      {type:"text-group", title:"4. Find who or what the underlined words in the text refer to.",
-        questions:[
-          {id:"4a",text:"a) this region (§1) ………"},
-          {id:"4b",text:"b) they (§2) ………"},
-          {id:"4c",text:"c) that (§3) ………"},
-          {id:"4d",text:"d) their (§3) ………"}
-        ]},
-      {type:"text-group", title:"5. Find in the text words or phrases that are opposite in meaning to the following.",
-        questions:[
-          {id:"5a",text:"a) modern (§1) ≠ ………"},
-          {id:"5b",text:"b) simple (§2) ≠ ………"},
-          {id:"5c",text:"c) low (§3) ≠ ………"}
         ]}
-    ],
-    answers: {
-      "1a":"False","1b":"True","1c":"True","1d":"False",
-      "2a":"1","2b":"3",
-      "3a":["indus river","valley","indian subcontinent","modern pakistan"],
-      "3b":["irrigation","drainage","writing"],
-      "3c":["public buildings","palaces","baths","granaries","artworks"],
-      "4a":["indian subcontinent","modern pakistan"],
-      "4b":["indians"],
-      "4c":["large cities"],
-      "4d":["residents","indus"],
-      "5a":["ancient"],
-      "5b":["complex"],
-      "5c":["high"]
-    }
+    ]
   },
 
   "1036": {
@@ -265,46 +181,8 @@ Adapted from UNESCO's and Mosaic North Africa's websites`,
       "Testimony":"شهادة","Treasure":"كنز","Engravings":"النقوش","Paintings":"اللوحات","Remarkable":"رائع"
     },
     quizData: [
-      {type:"mcq-single", title:"1. Identify the type of the text.", options:["a) narrative.","b) expository.","c) argumentative."]},
-      {type:"tf-group", title:"2. Say whether the following statements are true or false.",
-        questions:[
-          {id:"2a",text:"a. Algeria's history is unknown to the world."},
-          {id:"2b",text:"b. Djemila's Roman-style buildings are on mountains."},
-          {id:"2c",text:"c. The Casbah of Algiers has a mix of old and new styles."},
-          {id:"2d",text:"d. The M'Zab Valley and Ghardaia are only a few years old."}
-        ]},
-      {type:"text-group", title:"3. Answer the following questions according to the text.",
-        questions:[
-          {id:"3a",text:"a. How many sites in Algeria are recognized by UNESCO?"},
-          {id:"3b",text:"b. What specific features of Djemila ruins earned them a place on UNESCO's list?"},
-          {id:"3c",text:"c. Which sites have historical connections to Roman civilization?"}
-        ]},
-      {type:"text-group", title:"4. Find what or who the underlined words in the text refer to.",
-        questions:[
-          {id:"4a",text:"a. this archaeological site (§2) ………"},
-          {id:"4b",text:"b. its (§2) ………"}
-        ]},
-      {type:"text-group", title:"5. Find in the text words or phrases that are closest / opposite in meaning to the following.",
-        questions:[
-          {id:"5a",text:"a. old (§2) (closest) = ………"},
-          {id:"5b",text:"b. situated (§3) (closest) = ………"},
-          {id:"5c",text:"c. losing (§2) (opposite) ≠ ………"},
-          {id:"5d",text:"d. poor (§3) (opposite) ≠ ………"}
-        ]}
-    ],
-    answers: {
-      "1":"b) expository.",
-      "2a":"False","2b":"True","2c":"True","2d":"False",
-      "3a":["seven","7"],
-      "3b":["mountain village","berber-roman ruins","adaptation","mountain environment"],
-      "3c":["djemila","timgad","tipaza"],
-      "4a":["al qal'a","ben hammad"],
-      "4b":["djemila"],
-      "5a":["ancient"],
-      "5b":["located"],
-      "5c":["earning"],
-      "5d":["rich"]
-    }
+      {type:"mcq-single", title:"1. Identify the type of the text.", options:["a) narrative.","b) expository.","c) argumentative."]}
+    ]
   },
 
   "1037": {
@@ -328,17 +206,9 @@ We notice, too, that the civilizations of the past made slavery a practice that 
       {type:"text-group", title:"1. Answer the following questions according to the text.",
         questions:[
           {id:"1a",text:"a) What did ancient civilizations have in common?"},
-          {id:"1b",text:"b) What was necessary for a civilization to become prosperous?"},
-          {id:"1c",text:"c) What role did armies play?"},
-          {id:"1d",text:"d) What other common elements are mentioned?"}
+          {id:"1b",text:"b) What was necessary for a civilization to become prosperous?"}
         ]}
-    ],
-    answers: {
-      "1a":["features","in common","aspects"],
-      "1b":["powerful state","order","law"],
-      "1c":["protected","invaders","conquer","widen sources"],
-      "1d":["trade","slavery","social inequality","erection","gigantic constructions"]
-    }
+    ]
   },
 
   "1038": {
@@ -363,19 +233,9 @@ Adapted from: ‘ethicalsystems.org’`,
       {type:"text-group", title:"1. Answer the following questions.",
         questions:[
           {id:"1a",text:"1. What is ordinary unethical behaviour?"},
-          {id:"1b",text:"2. Give examples mentioned in the text."},
-          {id:"1c",text:"3. According to the studies, how much do people cheat?"},
-          {id:"1d",text:"4. What conflict do people experience?"},
-          {id:"1e",text:"5. How do people often resolve this conflict?"}
+          {id:"1b",text:"2. Give examples mentioned in the text."}
         ]}
-    ],
-    answers: {
-      "1a":["cheating","deception","unethical behaviour"],
-      "1b":["stealing","cheating on exams"],
-      "1c":["cheat up to the point","believe they are good"],
-      "1d":["conflict","positive self-image","self-interest"],
-      "1e":["cheat a little","reinterpreting","honest mistake"]
-    }
+    ]
   }
 };
 
@@ -392,7 +252,6 @@ const resultScreen = document.getElementById("result-screen");
 const textOverlay = document.getElementById("text-overlay");
 const startBtn = document.getElementById("start-btn");
 const usernameInput = document.getElementById("telegram-user");
-const testSelect = document.getElementById("test-select");
 const closeTextBtn = document.getElementById("close-text-btn");
 const textBtn = document.getElementById("text-btn");
 const nextBtn = document.getElementById("next-btn");
@@ -403,107 +262,131 @@ const dictCloseBtn = document.getElementById("dict-close-btn");
 const dictModalText = document.getElementById("dict-modal-text");
 const questionContent = document.getElementById("question-content");
 const progressMap = document.getElementById("progress-map");
-const appContainer = document.querySelector('.app-container');
-const pdfBtn = document.getElementById("pdf-btn");
-const navFooter = document.getElementById("nav-footer"); // Fixed Footer
+const navFooter = document.getElementById("nav-footer");
+const statusMessage = document.getElementById("status-message");
 
 // ========== INIT ==========
 function init() {
-  testSelect.innerHTML = '<option value="" disabled selected>Choose a test...</option>';
-  Object.values(ALL_TESTS).sort((a,b)=>a.id.localeCompare(b.id)).forEach(t=>{
-    const opt = document.createElement("option");
-    opt.value = t.id;
-    opt.textContent = t.title;
-    testSelect.appendChild(opt);
-  });
-
-  function checkReady(){ startBtn.disabled = !(usernameInput.value.trim() && testSelect.value); }
+  function checkReady() {
+    startBtn.disabled = !usernameInput.value.trim();
+  }
   usernameInput.addEventListener("input", checkReady);
-  testSelect.addEventListener("change", checkReady);
 
   startBtn.addEventListener("click", startTest);
   closeTextBtn.addEventListener("click", closeTextOverlay);
   textBtn.addEventListener("click", openTextOverlay);
   nextBtn.addEventListener("click", nextQuestion);
   prevBtn.addEventListener("click", prevQuestion);
-  restartBtn.addEventListener("click", ()=>{
+  restartBtn.addEventListener("click", () => {
     resultScreen.classList.remove("active");
     quizScreen.classList.remove("active");
+    navFooter.style.display = "none";
     startScreen.classList.add("active");
-    navFooter.style.display = "none"; // Hide footer on restart
     usernameInput.value = "";
-    testSelect.value = "";
     startBtn.disabled = true;
+    statusMessage.style.display = "none";
   });
-  dictCloseBtn.addEventListener("click", ()=>dictOverlay.classList.remove("active"));
-  dictOverlay.addEventListener("click", e=>{ if(e.target===dictOverlay) dictOverlay.classList.remove("active"); });
-  if(pdfBtn) pdfBtn.addEventListener("click", generatePDF);
+  dictCloseBtn.addEventListener("click", () => dictOverlay.classList.remove("active"));
+  dictOverlay.addEventListener("click", e => {
+    if (e.target === dictOverlay) dictOverlay.classList.remove("active");
+  });
 }
 
 async function startTest() {
   studentUsername = usernameInput.value.trim();
   if (!studentUsername.startsWith("@")) studentUsername = "@" + studentUsername;
-  currentTest = ALL_TESTS[testSelect.value];
-  if (!currentTest) return alert("Test not found");
 
   startBtn.disabled = true;
   startBtn.textContent = "Checking...";
+  statusMessage.style.display = "none";
 
   try {
-    const res = await fetch(`/api/check-username?username=${encodeURIComponent(studentUsername)}`);
+    // Call the new backend endpoint
+    const res = await fetch(`/api/get-assigned-test?username=${encodeURIComponent(studentUsername)}`);
     const data = await res.json();
+
     if (!data.valid) {
-      alert("Username not found.");
+      statusMessage.style.display = "block";
+      statusMessage.textContent = data.message || "Username not found. Make sure your account is registered.";
       startBtn.disabled = false;
       startBtn.textContent = "Continue";
       return;
     }
-  } catch(e){ console.warn("Backend skipped"); }
 
-  startBtn.disabled = false;
-  startBtn.textContent = "Continue";
-  currentStep = 0;
-  userAnswers = {};
-  startScreen.classList.remove("active");
-  openTextOverlay();
+    if (!data.active || !data.testId) {
+      statusMessage.style.display = "block";
+      statusMessage.textContent = "There is no active test at the moment.";
+      startBtn.disabled = false;
+      startBtn.textContent = "Continue";
+      return;
+    }
+
+    // Load the assigned test
+    currentTest = ALL_TESTS[data.testId];
+    if (!currentTest) {
+      statusMessage.style.display = "block";
+      statusMessage.textContent = "Test data not found. Please contact support.";
+      startBtn.disabled = false;
+      startBtn.textContent = "Continue";
+      return;
+    }
+
+    // Success → start the test
+    startBtn.disabled = false;
+    startBtn.textContent = "Continue";
+    currentStep = 0;
+    userAnswers = {};
+    startScreen.classList.remove("active");
+    openTextOverlay();
+
+  } catch (err) {
+    console.error(err);
+    statusMessage.style.display = "block";
+    statusMessage.textContent = "Network error. Please try again.";
+    startBtn.disabled = false;
+    startBtn.textContent = "Continue";
+  }
 }
 
 function openTextOverlay() {
   if (!currentTest) return;
   document.getElementById("overlay-title").textContent = currentTest.title;
-  const paragraphs = currentTest.text.split(/\n\s*\n/).filter(p=>p.trim());
+  const paragraphs = currentTest.text.split(/\n\s*\n/).filter(p => p.trim());
   let html = paragraphs.map(p => `<p>${highlightWords(p.trim(), currentTest.dictionary)}</p>`).join("");
   document.getElementById("overlay-text").innerHTML = html;
   textOverlay.classList.add("active");
-  document.querySelectorAll(".dict-word").forEach(el=>{
+  document.querySelectorAll(".dict-word").forEach(el => {
     el.onclick = () => openDictionary(el.dataset.word);
   });
 }
 
 function highlightWords(text, dict) {
-  const terms = Object.keys(dict).sort((a,b)=>b.length-a.length);
+  const terms = Object.keys(dict).sort((a, b) => b.length - a.length);
   let result = text;
-  terms.forEach(term=>{
-    const regex = new RegExp(`\\b(${escapeRegExp(term)})\\b`,"gi");
+  terms.forEach(term => {
+    const regex = new RegExp(`\\b(${escapeRegExp(term)})\\b`, "gi");
     result = result.replace(regex, `<span class="dict-word" data-word="$1">$1</span>`);
   });
   return result;
 }
-function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function closeTextOverlay() {
   textOverlay.classList.remove("active");
   quizScreen.classList.add("active");
-  navFooter.style.display = "flex"; // Show footer during quiz
+  navFooter.style.display = "flex";
   buildProgress();
   renderQuestion();
 }
 
 function buildProgress() {
   progressMap.innerHTML = "";
-  currentTest.quizData.forEach((_,i)=>{
+  currentTest.quizData.forEach((_, i) => {
     const dot = document.createElement("div");
-    dot.className = "progress-dot" + (i===currentStep ? " active" : "");
+    dot.className = "progress-dot" + (i === currentStep ? " active" : "");
     progressMap.appendChild(dot);
   });
 }
@@ -513,10 +396,10 @@ function renderQuestion() {
   let html = `<div class="question-title">${step.title}</div>`;
 
   if (step.type === "mcq-group") {
-    step.questions.forEach(q=>{
+    step.questions.forEach(q => {
       html += `<div class="sub-question"><p>${q.text}</p><div class="options-grid">`;
-      q.options.forEach(opt=>{
-        const sel = userAnswers[q.id]===opt ? "selected" : "";
+      q.options.forEach(opt => {
+        const sel = userAnswers[q.id] === opt ? "selected" : "";
         html += `<button class="option-btn ${sel}" data-qid="${q.id}" data-value="${opt}">${opt}</button>`;
       });
       html += `</div></div>`;
@@ -524,34 +407,24 @@ function renderQuestion() {
   }
   else if (step.type === "mcq-single") {
     html += `<div class="options-grid">`;
-    step.options.forEach(opt=>{
-      const sel = userAnswers["single"+currentStep]===opt ? "selected" : "";
+    step.options.forEach(opt => {
+      const sel = userAnswers["single" + currentStep] === opt ? "selected" : "";
       html += `<button class="option-btn ${sel}" data-qid="single${currentStep}" data-value="${opt}">${opt}</button>`;
     });
     html += `</div>`;
   }
   else if (step.type === "tf-group") {
-    step.questions.forEach(q=>{
+    step.questions.forEach(q => {
       html += `<div class="sub-question"><p>${q.text}</p><div class="options-row">`;
-      ["True","False"].forEach(val=>{
-        const sel = userAnswers[q.id]===val ? "selected" : "";
+      ["True", "False"].forEach(val => {
+        const sel = userAnswers[q.id] === val ? "selected" : "";
         html += `<button class="option-btn ${sel}" data-qid="${q.id}" data-value="${val}">${val}</button>`;
       });
       html += `</div></div>`;
     });
   }
-  else if (step.type === "para-match") {
-    step.questions.forEach(q=>{
-      html += `<div class="sub-question"><p>${q.text}</p><div class="options-row">`;
-      step.options.forEach(opt=>{
-        const sel = userAnswers[q.id]===opt ? "selected" : "";
-        html += `<button class="option-btn ${sel}" data-qid="${q.id}" data-value="${opt}">P${opt}</button>`;
-      });
-      html += `</div></div>`;
-    });
-  }
   else if (step.type === "ordering") {
-    step.items.forEach(item=>{
+    step.items.forEach(item => {
       const val = userAnswers[item.id] || "–";
       html += `<div class="sub-question" style="display:flex;align-items:center;gap:12px">
         <button class="option-btn" style="width:42px;height:42px;padding:0;text-align:center" data-qid="${item.id}">${val}</button>
@@ -560,7 +433,7 @@ function renderQuestion() {
     });
   }
   else if (step.type === "text-group") {
-    step.questions.forEach(q=>{
+    step.questions.forEach(q => {
       const val = userAnswers[q.id] || "";
       html += `<div class="sub-question"><p>${q.text}</p>
         <textarea data-qid="${q.id}" rows="3" placeholder="Type your answer here...">${val}</textarea>
@@ -569,24 +442,21 @@ function renderQuestion() {
   }
 
   questionContent.innerHTML = html;
-  questionContent.style.animation = 'none';
-  questionContent.offsetHeight;
-  questionContent.style.animation = 'slideIn 0.5s ease forwards';
   attachListeners();
   updateNav();
 }
 
 function attachListeners() {
-  document.querySelectorAll(".option-btn").forEach(btn=>{
-    btn.addEventListener("click", e=>{
+  document.querySelectorAll(".option-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
       const qid = e.target.dataset.qid;
       const value = e.target.dataset.value;
 
-      if (value) { // normal option
+      if (value) {
         userAnswers[qid] = value;
-        e.target.parentNode.querySelectorAll(".option-btn").forEach(s=>s.classList.remove("selected"));
+        e.target.parentNode.querySelectorAll(".option-btn").forEach(s => s.classList.remove("selected"));
         e.target.classList.add("selected");
-      } else { // ordering circle
+      } else {
         let cur = parseInt(userAnswers[qid]) || 0;
         cur = cur % 3 + 1;
         userAnswers[qid] = cur;
@@ -595,8 +465,8 @@ function attachListeners() {
     });
   });
 
-  document.querySelectorAll("textarea").forEach(ta=>{
-    ta.addEventListener("input", e=>{
+  document.querySelectorAll("textarea").forEach(ta => {
+    ta.addEventListener("input", e => {
       userAnswers[e.target.dataset.qid] = e.target.value;
     });
   });
@@ -624,220 +494,29 @@ function prevQuestion() {
   }
 }
 
-function openDictionary(focusWord=null) {
+function openDictionary(focusWord = null) {
   if (!currentTest) return;
   let html = "";
-  Object.entries(currentTest.dictionary).forEach(([word,def])=>{
-    const isFocus = focusWord && word.toLowerCase()===focusWord.toLowerCase();
-    html += `<p class="${isFocus?"highlight-word":""}"><strong>${word}:</strong> ${def}</p>`;
+  Object.entries(currentTest.dictionary).forEach(([word, def]) => {
+    const isFocus = focusWord && word.toLowerCase() === focusWord.toLowerCase();
+    html += `<p class="${isFocus ? "highlight-word" : ""}"><strong>${word}:</strong> ${def}</p>`;
   });
   dictModalText.innerHTML = html;
   dictOverlay.classList.add("active");
-  if (focusWord) setTimeout(()=>{
-    const el = dictModalText.querySelector(".highlight-word");
-    if (el) el.scrollIntoView({behavior:"smooth",block:"center"});
-  },60);
-}
-
-// Normalize text helper
-function normalizeText(text) {
-    if (!text) return "";
-    return text.toLowerCase()
-        .replace(/[.,/#!$%^&*;:{}=\-_`~()@?\[\]]/g, "")
-        .replace(/\s{2,}/g, " ")
-        .trim();
-}
-
-// Keyword matcher for Text Answers
-function containsKeywords(userText, keywords) {
-    const normalizedUser = normalizeText(userText);
-    let matches = 0;
-    for (const kw of keywords) {
-        if (normalizedUser.includes(normalizeText(kw))) {
-            matches++;
-        }
-    }
-    return matches >= Math.ceil(keywords.length / 2);
-}
-
-// --- GRADING LOGIC ---
-function calculateScore() {
-    let totalScore = 0;
-    let bubbles = [];
-    let breakdownHTML = '';
-    
-    currentTest.quizData.forEach((q, index) => {
-        let correctCount = 0;
-        let totalItems = 0;
-        
-        if (q.type === 'mcq-single') {
-            totalItems = 1;
-            const userAns = userAnswers["single" + index];
-            const correctAns = currentTest.answers[q.id];
-            if (userAns === correctAns) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
-        } else if (q.type === 'tf-group' || q.type === 'para-match' || q.type === 'mcq-group') {
-            if (q.questions) {
-                q.questions.forEach(item => {
-                    totalItems++;
-                    const userAns = userAnswers[item.id];
-                    const correctAns = currentTest.answers[item.id];
-                    if (userAns === correctAns) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
-                });
-            }
-        } else if (q.type === 'text-group') {
-            if (q.questions) {
-                q.questions.forEach(item => {
-                    totalItems++;
-                    const userAns = userAnswers[item.id] || "";
-                    const correctAns = currentTest.answers[item.id] || [];
-                    if (containsKeywords(userAns, correctAns)) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
-                });
-            }
-        } else if (q.type === 'ordering') {
-            if (q.items) {
-                q.items.forEach(item => {
-                    totalItems++;
-                    const userAns = userAnswers[item.id];
-                    const correctAns = currentTest.answers.order ? currentTest.answers.order[item.id] : null;
-                    if (parseInt(userAns) === correctAns) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
-                });
-            }
-        }
-        
-        breakdownHTML += `<div class="breakdown-row"><span class="breakdown-label">Q${q.id}: ${q.title.substring(0, 20)}...</span><span class="breakdown-score">${correctCount}/${totalItems}</span></div>`;
-    });
-
-    return { totalScore, bubbles, breakdownHTML };
+  if (focusWord) {
+    setTimeout(() => {
+      const el = dictModalText.querySelector(".highlight-word");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 60);
+  }
 }
 
 function finishTest() {
-    quizScreen.classList.remove("active");
-    navFooter.style.display = "none"; // Hide footer on results
-    resultScreen.classList.add("active");
-    
-    const { totalScore, bubbles, breakdownHTML } = calculateScore();
-    
-    const percentageScore = bubbles.length > 0 ? ((totalScore / bubbles.length) * 100).toFixed(2) : "0.00";
-    document.getElementById("final-score").textContent = `${percentageScore}/100`;
-    document.getElementById("score-breakdown").innerHTML = breakdownHTML;
-
-    if(totalScore >= bubbles.length * 0.7) {
-        document.getElementById("result-message").textContent = 'Excellent work! You have a solid understanding of the text.';
-    } else if(totalScore >= bubbles.length * 0.5) {
-        document.getElementById("result-message").textContent = 'Good effort! Keep practicing your reading skills.';
-    } else {
-        document.getElementById("result-message").textContent = 'Needs improvement. Review the text and try again!';
-    }
-
-    setTimeout(() => {
-        createBubbles(bubbles);
-    }, 300);
-
-    sendToTelegram(percentageScore);
-}
-
-function createBubbles(bubblesArray) {
-    const bubbleContainer = document.createElement('div');
-    bubbleContainer.className = 'bubble-container';
-    
-    bubblesArray.forEach(isCorrect => {
-        const bubble = document.createElement('div');
-        bubble.className = `floating-bubble ${isCorrect ? 'correct' : 'wrong'}`;
-        bubble.style.marginLeft = `${Math.random() * 20 - 10}px`;
-        bubbleContainer.appendChild(bubble);
-    });
-
-    appContainer.appendChild(bubbleContainer);
-    setTimeout(() => { bubbleContainer.remove(); }, 2000);
-}
-
-async function sendToTelegram(percentageScore) {
-    const telegramStatus = document.getElementById("telegram-status");
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-GB');
-    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-    try {
-        const response = await fetch('/api/send-quiz-result', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                quizName: currentTest.title,
-                username: studentUsername,
-                score: percentageScore,
-                date: dateStr,
-                time: timeStr
-            })
-        });
-        const data = await response.json();
-        if (data.success) {
-            telegramStatus.textContent = '✅ Score sent to your teacher successfully!';
-            telegramStatus.style.color = 'green';
-        } else {
-            telegramStatus.textContent = '⚠️ Error sending score. Please inform your teacher.';
-            telegramStatus.style.color = 'red';
-        }
-    } catch (error) {
-        telegramStatus.textContent = '⚠️ Network error. Could not send score.';
-        telegramStatus.style.color = 'red';
-    }
-}
-
-// ==========================================
-// DYNAMIC PDF GENERATION
-// ==========================================
-function generatePDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    doc.setFontSize(16);
-    doc.text(`Test Review: ${currentTest.title}`, 105, 20, null, null, 'center');
-    doc.setFontSize(12);
-    doc.text(`Student: ${studentUsername}`, 14, 30);
-    doc.text(`Score: ${document.getElementById('final-score').textContent} / 100`, 14, 40);
-    
-    let y = 50;
-    const lineH = 7;
-    
-    const addQ = (qText, studentAns, correctAns) => {
-        if(y > 270) { doc.addPage(); y = 20; }
-        doc.setFont(undefined, 'bold');
-        const qLines = doc.splitTextToSize(qText, 180);
-        doc.text(qLines, 14, y); y += (qLines.length * lineH);
-        
-        doc.setFont(undefined, 'normal');
-        const sLines = doc.splitTextToSize(`Your Answer: ${studentAns || 'N/A'}`, 180);
-        doc.text(sLines, 20, y); y += (sLines.length * lineH);
-        
-        doc.setTextColor(0, 100, 0); // Dark green for correct answer
-        const cLines = doc.splitTextToSize(`Correct Answer: ${correctAns}`, 180);
-        doc.text(cLines, 20, y); y += (cLines.length * lineH);
-        doc.setTextColor(0, 0, 0); // Reset color
-        y += 4;
-    };
-
-    currentTest.quizData.forEach((q, index) => {
-        if (q.type === 'mcq-single') {
-            addQ(`Q${q.id}: ${q.title}`, userAnswers["single" + index], currentTest.answers[q.id]);
-        } else {
-            if (q.questions) {
-                q.questions.forEach(item => {
-                    let correctAns = currentTest.answers[item.id];
-                    if (q.type === 'text-group' && Array.isArray(correctAns)) {
-                        correctAns = correctAns.join(', ');
-                    }
-                    addQ(`Q${item.id}: ${item.text}`, userAnswers[item.id], correctAns);
-                });
-            } else if (q.items) { // ordering
-                q.items.forEach(item => {
-                    const correctOrder = currentTest.answers.order ? currentTest.answers.order[item.id] : 'N/A';
-                    addQ(`Q${item.id}: ${item.text}`, userAnswers[item.id], `Order: ${correctOrder}`);
-                });
-            }
-        }
-    });
-
-    doc.save(`${currentTest.id}-Test-Review.pdf`);
+  quizScreen.classList.remove("active");
+  navFooter.style.display = "none";
+  resultScreen.classList.add("active");
+  document.getElementById("final-score").textContent = "Completed";
+  document.getElementById("result-message").textContent = "Thank you for finishing the test.";
 }
 
 init();
