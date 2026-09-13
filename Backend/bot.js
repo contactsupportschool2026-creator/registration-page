@@ -424,36 +424,11 @@ bot.on('callback_query', async (query) => {
         const group = data.replace('settest_clear_', '');
 
         await withDB(db => {
-            // Support both array and object format
-            if (Array.isArray(db)) {
-                // Migrate on the fly
-                const newDb = { students: db, activeTests: { scientific: null, literature: null } };
-                newDb.activeTests[group] = null;
-                // We need to replace the whole file content - handled by writing new structure
-                // For simplicity we store activeTests in a special way
-                return;
-            } else {
-                if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
-                db.activeTests[group] = null;
-            }
-        });
-
-        // Better approach: always use a separate activeTests storage
-        // For now we use a simple method
-        await withDB(db => {
-            if (Array.isArray(db)) {
-                // Keep students as array, we will store activeTests differently
-            }
-        });
-
-        // Simple reliable way: store in a global-like structure using withDB
-        await withDB(db => {
-            // Force object structure if needed
-            if (Array.isArray(db)) {
-                // This is a limitation - we need to change DB structure
-            }
-        });
-
+    if (!db.activeTests) {
+        db.activeTests = { scientific: null, literature: null };
+    }
+    db.activeTests[group] = null;
+});
         await bot.editMessageText(`✅ Active test for *${group}* has been cancelled.`, {
             chat_id: chatId,
             message_id: query.message.message_id,
@@ -475,16 +450,11 @@ bot.on('callback_query', async (query) => {
         // or better: we update the structure.
 
         await withDB(db => {
-            if (Array.isArray(db)) {
-                // Temporary solution: we can't easily store activeTests in pure array.
-                // We will need a small migration.
-                // For now, let's assume we will fix the DB structure.
-            } else {
-                if (!db.activeTests) db.activeTests = {};
-                db.activeTests[group] = testId;
-            }
-        });
-
+    if (!db.activeTests) {
+        db.activeTests = { scientific: null, literature: null };
+    }
+    db.activeTests[group] = testId;
+});
         // IMPORTANT: Because the current database.json is a pure array,
         // we need a small change in db handling.
         // I will give you the clean solution next.
