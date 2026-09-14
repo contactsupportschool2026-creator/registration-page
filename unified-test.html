@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Reading Comprehension Tests</title>
+  <title>Reading Comprehension & Writing Tests</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,7 +92,7 @@
         margin-bottom: 6px;
     }
 
-    input[type="text"] {
+    input[type="text"], input[type="password"] {
         width: 100%;
         height: 48px;
         padding: 0 14px;
@@ -105,7 +105,7 @@
         transition: border var(--transition-speed);
     }
 
-    input[type="text"]:focus { border-color: var(--primary-green); }
+    input[type="text"]:focus, input[type="password"]:focus { border-color: var(--primary-green); }
 
     .btn {
         height: 42px;
@@ -317,6 +317,22 @@
 
     .nav-right { display: flex; gap: 10px; }
 
+    /* WRITING EXPRESSION AREA */
+    .writing-area {
+        width: 100%;
+        min-height: 300px;
+        border: none;
+        outline: none;
+        font-family: 'Poppins', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.75;
+        color: #333;
+        resize: none;
+        background: transparent;
+    }
+
+    /* RESULT */
     #result-screen { text-align: center; }
     .final-score {
         font-family: 'Poppins', sans-serif;
@@ -401,12 +417,69 @@
         color: #555;
     }
 
-    /* RESTORED: Floating Bubbles Animation */
+    /* TEACHER PANEL STYLES */
+    #teacher-panel-screen { width: 100%; }
+    .teacher-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--primary-green);
+        padding-bottom: 10px;
+    }
+    .group-select-btn { background: var(--btn-bg); color: var(--primary-green); padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 1px solid transparent; }
+    .group-select-btn.active { background: var(--primary-green); color: #fff; }
+    #essay-count { font-family: 'Poppins', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--primary-green); }
+
+    .teacher-layout {
+        display: flex;
+        gap: 20px;
+        height: calc(100vh - 200px);
+    }
+    .teacher-left { flex: 2; display: flex; flex-direction: column; gap: 15px; }
+    .teacher-right { flex: 1; display: flex; flex-direction: column; gap: 15px; justify-content: flex-end; }
+
+    #essay-content {
+        flex: 1;
+        border: 1px solid #eee;
+        padding: 20px;
+        border-radius: 12px;
+        overflow-y: auto;
+        font-family: 'Poppins', sans-serif;
+        font-size: 1rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+    #essay-content:empty::before { content: "Select a group to start correcting..."; color: #999; }
+
+    .annotation-tools { display: flex; gap: 10px; }
+    .tool-btn { padding: 8px 12px; border: 1px solid #eee; border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    .tool-btn:hover { background: var(--light-green); }
+
+    .pen-red { color: #d32f2f; text-decoration: line-through; }
+    .highlight-yellow { background-color: rgba(255, 235, 59, 0.5); }
+    .underline-bold { text-decoration: underline; font-weight: bold; }
+
+    #teacher-notes { border: 1px solid #eee; border-radius: 12px; padding: 15px; min-height: 100px; font-family: inherit; resize: none; }
+    #teacher-notes:focus { outline: none; border-color: var(--primary-green); }
+
+    .grade-input { display: flex; align-items: center; gap: 10px; }
+    .grade-input input { width: 80px; height: 42px; text-align: center; font-size: 1.2rem; font-weight: bold; border: 1px solid #eee; border-radius: 8px; }
+    .grade-input span { font-weight: bold; color: #555; }
+
     .bubble-container { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); pointer-events: none; z-index: 1000; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: 80%; }
     .floating-bubble { width: 20px; height: 20px; border-radius: 50%; opacity: 0; animation: floatUp 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     .floating-bubble.correct { background: var(--primary-green); border: 1px solid #003831; }
     .floating-bubble.wrong { background: var(--wrong-color); border: 1px solid #cc0000; }
     @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-200px) scale(1.5); opacity: 0; } }
+
+    @media (max-width: 768px) {
+        body { padding: 10px; padding-top: 70px; padding-bottom: 80px; }
+        .app-container { padding: 15px; border-radius: 12px; }
+        .close-text-btn { bottom: 18px; height: 50px; }
+        .teacher-layout { flex-direction: column; height: auto; }
+        .teacher-right { flex-direction: row; align-items: center; }
+    }
   </style>
 </head>
 <body>
@@ -415,11 +488,11 @@
   <div class="app-container">
     <!-- START SCREEN -->
     <div id="start-screen" class="screen active">
-      <h1>Reading Comprehension</h1>
-      <p>Enter your Telegram username to start the assigned test</p>
+      <h1 id="start-title">Reading Comprehension</h1>
+      <p id="start-subtitle">Enter your Telegram username to start the assigned test</p>
       
       <div class="form-group">
-        <label for="telegram-user">Telegram Username</label>
+        <label for="telegram-user" id="username-label">Telegram Username</label>
         <input type="text" id="telegram-user" placeholder="@username">
       </div>
       
@@ -445,6 +518,14 @@
       </div>
     </div>
 
+    <!-- WRITING SCREEN -->
+    <div id="writing-screen" class="screen">
+      <h1>Writing Expression</h1>
+      <div class="question-container" style="min-height: 400px;">
+        <textarea class="writing-area" id="writing-area" placeholder="Type your essay here..."></textarea>
+      </div>
+    </div>
+
     <!-- RESULT SCREEN -->
     <div id="result-screen" class="screen">
       <h1>Test Finished!</h1>
@@ -454,13 +535,43 @@
       <p class="telegram-placeholder" id="telegram-status">Your score is being sent...</p>
       <div class="action-buttons">
         <button class="btn btn-primary" id="restart-btn">Back to Start</button>
-        <!-- RESTORED: PDF Button -->
         <button class="btn btn-download" id="pdf-btn">⬇ Download Answers & Review (PDF)</button>
+      </div>
+    </div>
+
+    <!-- TEACHER PANEL SCREEN -->
+    <div id="teacher-panel-screen" class="screen">
+      <div class="teacher-header">
+        <div style="display:flex; gap:10px;">
+          <button class="group-select-btn" id="grp-sci-btn" onclick="loadEssays('scientific')">Scientific</button>
+          <button class="group-select-btn" id="grp-lit-btn" onclick="loadEssays('literature')">Literature</button>
+        </div>
+        <div id="essay-count">0</div>
+      </div>
+      
+      <div class="teacher-layout">
+        <div class="teacher-left">
+          <div id="essay-content" contenteditable="true"></div>
+          <div class="annotation-tools">
+            <button class="tool-btn" style="color:#d32f2f;" onclick="applyAnnotation('pen-red')">Red Pen</button>
+            <button class="tool-btn" style="background:#fffde7;" onclick="applyAnnotation('highlight-yellow')">Highlighter</button>
+            <button class="tool-btn" style="text-decoration:underline;" onclick="applyAnnotation('underline-bold')">Underline</button>
+            <button class="tool-btn" onclick="clearAnnotation()">Clear Format</button>
+          </div>
+          <textarea id="teacher-notes" placeholder="Teacher notes..."></textarea>
+        </div>
+        <div class="teacher-right">
+          <div class="grade-input">
+            <input type="text" id="grade-input" placeholder="0" inputmode="numeric">
+            <span>/ 100</span>
+          </div>
+          <button class="btn btn-primary" id="next-essay-btn" onclick="submitGrade()">Next</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Fixed Footer Navigation (only visible during quiz) -->
+  <!-- Fixed Footer Navigation (only visible during quiz/writing) -->
   <div class="nav-footer" id="nav-footer" style="display:none;">
     <div class="nav-footer-inner">
       <button class="btn" id="prev-btn" style="visibility:hidden">Previous</button>
