@@ -428,10 +428,10 @@ bot.on('callback_query', async (query) => {
     }
 
     if (data.startsWith('setwrit_choose_')) {
-        const parts = data.replace('setwrit_choose_', '').split('_');
-        const group = parts[0];
-        const topicId = parts[1];
-
+        const parts = data.replace('setwrit_choose_', '');
+        const group = parts.startsWith('scientific') ? 'scientific' : 'literature';
+        const topicId = parts.replace(`${group}_`, '');
+        
         await withDB(db => {
             if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
             db.activeWriting[group] = topicId;
