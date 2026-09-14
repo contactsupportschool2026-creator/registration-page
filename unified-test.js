@@ -1034,5 +1034,18 @@ async function submitGrade() {
     alert("Network error.");
   }
 }
-
+  const writingArea = document.getElementById('writing-area');
+  const wordCountSpan = document.getElementById('word-count');
+  writingArea.addEventListener('input', () => {
+    let words = writingArea.value.trim().split(/\s+/);
+    if (writingArea.value.trim() === '') words = [];
+    wordCountSpan.textContent = `${words.length} / 120 words`;
+    if (words.length > 120) {
+      wordCountSpan.style.color = 'red';
+      nextBtn.disabled = true;
+    } else {
+      wordCountSpan.style.color = '#999';
+      nextBtn.disabled = false;
+    }
+});
 init();
