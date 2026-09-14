@@ -13,15 +13,15 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '..')));
 initializeDB();
 
-function telegramNotify(text, chatId = null) {
+function telegramNotify(text, chatId = null, parseMode = 'HTML') {
     if (!process.env.TELEGRAM_BOT_TOKEN) return;
     const targetChatId = chatId || process.env.TELEGRAM_CHAT_ID;
     const TELEGRAM_API = 'https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage';
     return axios.post(TELEGRAM_API, {
         chat_id: targetChatId,
         text: text,
-        parse_mode: 'Markdown'
-    }, { timeout: 10000 }).catch(e => console.error('Telegram notify failed:', e.message));
+        parse_mode: parseMode
+    }, { timeout: 10000 }).catch(e => console.error('Telegram notify failed:', e.response ? JSON.stringify(e.response.data) : e.message));
 }
 
 const processingInvoices = new Set();
