@@ -404,9 +404,10 @@ bot.on('callback_query', async (query) => {
             callback_data: `setwrit_choose_${group}_${t.id}`
         }]));
         buttons.push([{ text: '🚫 Cancel Current Writing', callback_data: `setwrit_clear_${group}` }]);
+        buttons.push([{ text: '📄 Release Corrected PDFs', callback_data: `setwrit_release_${group}` }]); // NEW BUTTON
         buttons.push([{ text: '❌ Close', callback_data: 'setwrit_cancel' }]);
 
-        await bot.editMessageText(`✍️ *Set Writing Expression for ${group.toUpperCase()}*\n\nChoose a topic:`, {
+        await bot.editMessageText(`✍️ *Set Writing Expression for ${group.toUpperCase()}*\n\nChoose a topic or release corrected PDFs:`, {
             chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown',
             reply_markup: { inline_keyboard: buttons }
         });
@@ -414,12 +415,24 @@ bot.on('callback_query', async (query) => {
         return;
     }
 
-        if (data.startsWith('setwrit_choose_')) {
+    if (data.startsWith('setwrit_clear_')) {
+        const group = data.replace('setwrit_clear_', '');
+        await withDB(db => {
+            if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
+            db.activeWriting[group] = null;
+        });
+        await bot.editMessageText(`✅ Active writing topic for *${group}* has been cancelled.`, {
+            chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown'
+        });
+        await bot.answerCallbackQuery(query.id, { text: 'Writing cancelled' });
+        return;
+    }
+
+    if (data.startsWith('setwrit_choose_')) {
         const parts = data.replace('setwrit_choose_', '');
         const group = parts.startsWith('scientific') ? 'scientific' : 'literature';
         const topicId = parts.replace(`${group}_`, '');
 
-        // Find the topic title
         const topics = [
             { id: 'WE1_LIT', title: 'Above the Law (Literature)' }
         ];
@@ -428,7 +441,7 @@ bot.on('callback_query', async (query) => {
 
         await withDB(db => {
             if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
-            db.activeWriting[group] = { id: topicId, title: topicTitle }; // Save as object now
+            db.activeWriting[group] = { id: topicId, title: topicTitle };
             if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
             db.activeTests[group] = null;
         });
@@ -439,28 +452,87 @@ bot.on('callback_query', async (query) => {
         await bot.answerCallbackQuery(query.id, { text: 'Writing assigned!' });
         return;
     }
-    
-    if (data.startsWith('setwrit_choose_')) {
-        const parts = data.replace('setwrit_choose_', '');
-        const group = parts.startsWith('scientific') ? 'scientific' : 'literature';
-        const topicId = parts.replace(`${group}_`, '');
-        
-        await withDB(db => {
-            if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
-            db.activeWriting[group] = topicId;
-            // Mutual Exclusivity: Clear reading test
-            if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
-            db.activeTests[group] = null;
-        });
 
-        await bot.editMessageText(`✅ Writing topic *${topicId}* is now active for the *${group}* group.`, {
-            chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown'
-        });
-        await bot.answerCallbackQuery(query.id, { text: 'Writing assigned!' });
+    // ==========================================
+    // NEW: RELEASE PDFs HANDLER
+    // ==========================================
+    if (data.startsWith('setwrit_release_')) {
+        const group = data.replace('setwrit_release_', '');
+        
+        try {
+            const db = await readDB();
+            const gradedEssays = (db.gradedEssays && db.gradedEssays[group]) || [];
+            
+            if (gradedEssays.length === 0) {
+                await bot.answerCallbackQuery(query.id, { text: 'No graded essays to release.' });
+                await bot.editMessageText(`⚠️ No graded essays found for ${group}.`, {
+                    chat_id: chatId, message_id: query.message.message_id
+                });
+                return;
+            }
+            
+            await bot.answerCallbackQuery(query.id, { text: 'Generating PDFs...' });
+            await bot.editMessageText(`⏳ Generating ${gradedEssays.length} PDF(s) for ${group}...`, {
+                chat_id: chatId, message_id: query.message.message_id
+            });
+
+            // Use pdfkit to generate documents
+            const PDFDocument = require('pdfkit');
+            
+            for (const essay of gradedEssays) {
+                const doc = new PDFDocument();
+                const buffers = [];
+                doc.on('data', buffers.push.bind(buffers));
+                
+                const pdfPromise = new Promise((resolve) => {
+                    doc.on('end', () => {
+                        const pdfData = Buffer.concat(buffers);
+                        bot.sendDocument(chatId, pdfData, {
+                            caption: `📄 ${essay.username} - Grade: ${essay.grade}/100`
+                        }, {
+                            filename: `${essay.username.replace('@','')}_essay.pdf`,
+                            contentType: 'application/pdf'
+                        }).then(resolve);
+                    });
+                });
+
+                // Build PDF Content
+                doc.fontSize(16).fillColor('#004d40').text(`Student: ${essay.username}`, { align: 'left' });
+                doc.moveDown(0.5);
+                doc.fontSize(14).fillColor('black').text(`Grade: ${essay.grade}/100`);
+                doc.moveDown(1);
+                
+                doc.fontSize(12).text('Teacher Notes:', { underline: true });
+                doc.text(essay.notes || 'None');
+                doc.moveDown(1);
+                
+                doc.text('Corrected Essay:', { underline: true });
+                // Strip HTML tags from the contenteditable div for clean text in PDF
+                const plainText = essay.correctedContent.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+                doc.text(plainText);
+                
+                doc.end();
+                await pdfPromise;
+            }
+            
+            // Clear the graded essays array after releasing them so they aren't sent twice
+            await withDB(db => {
+                if (db.gradedEssays) db.gradedEssays[group] = [];
+            });
+            
+            await bot.editMessageText(`✅ Released ${gradedEssays.length} PDF(s) for ${group}.\nYou can now forward them to the students.`, {
+                chat_id: chatId, message_id: query.message.message_id
+            });
+            
+        } catch (err) {
+            console.error('Release PDFs error:', err.message);
+            await bot.editMessageText(`⚠️ Failed to release PDFs: ${err.message}`, {
+                chat_id: chatId, message_id: query.message.message_id
+            });
+        }
         return;
     }
 });
-
 // ==========================================
 // STATUS, DELETE, EXPORT CALLBACKS
 // ==========================================
