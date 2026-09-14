@@ -454,10 +454,7 @@ bot.on('callback_query', async (query) => {
     }
 
     // ==========================================
-    // NEW: RELEASE PDFs HANDLER
-    // ==========================================
-        // ==========================================
-    // NEW: RELEASE CORRECTED ESSAYS HANDLER
+    // RELEASE CORRECTED ESSAYS HANDLER
     // ==========================================
     if (data.startsWith('setwrit_release_')) {
         const group = data.replace('setwrit_release_', '');
@@ -480,7 +477,6 @@ bot.on('callback_query', async (query) => {
             });
 
             for (const essay of gradedEssays) {
-                // Clean up the HTML from the contenteditable div
                 let cleanContent = essay.correctedContent;
                 
                 // Convert HTML formatting to Telegram formatting
@@ -504,7 +500,7 @@ bot.on('callback_query', async (query) => {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            // Clear the graded essays array after releasing them so they aren't sent twice
+            // Clear the graded essays array after releasing them
             await withDB(db => {
                 if (db.gradedEssays) db.gradedEssays[group] = [];
             });
@@ -521,7 +517,7 @@ bot.on('callback_query', async (query) => {
         }
         return;
     }
-}):
+});
 // ==========================================
 // STATUS, DELETE, EXPORT CALLBACKS
 // ==========================================
