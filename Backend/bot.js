@@ -10,7 +10,7 @@ const { withRetry }                    = require('./retry');
 const bot          = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
 bot.on('polling_error', (error) => {
-    console.log('[bot] Telegram polling error (may be network):', error.code);
+    console.log('[bot] Telegram polling error:', error.code, error.message);
 });
 const SUPPORT_TEXT = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
 
