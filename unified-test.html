@@ -138,6 +138,13 @@
     .btn-text { background: var(--btn-bg); color: var(--primary-green); }
     .btn-text:hover { background: var(--btn-hover); }
 
+    .btn-download {
+        background: transparent;
+        border: 1px solid var(--primary-green);
+        color: var(--primary-green);
+    }
+    .btn-download:hover { background: var(--light-green); }
+
     /* FULL SCREEN TEXT */
     .text-overlay {
         position: fixed;
@@ -393,6 +400,13 @@
         font-family: 'Poppins', sans-serif;
         color: #555;
     }
+
+    /* RESTORED: Floating Bubbles Animation */
+    .bubble-container { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); pointer-events: none; z-index: 1000; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: 80%; }
+    .floating-bubble { width: 20px; height: 20px; border-radius: 50%; opacity: 0; animation: floatUp 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .floating-bubble.correct { background: var(--primary-green); border: 1px solid #003831; }
+    .floating-bubble.wrong { background: var(--wrong-color); border: 1px solid #cc0000; }
+    @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-200px) scale(1.5); opacity: 0; } }
   </style>
 </head>
 <body>
@@ -440,6 +454,8 @@
       <p class="telegram-placeholder" id="telegram-status">Your score is being sent...</p>
       <div class="action-buttons">
         <button class="btn btn-primary" id="restart-btn">Back to Start</button>
+        <!-- RESTORED: PDF Button -->
+        <button class="btn btn-download" id="pdf-btn">⬇ Download Answers & Review (PDF)</button>
       </div>
     </div>
   </div>
