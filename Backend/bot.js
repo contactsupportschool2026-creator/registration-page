@@ -453,7 +453,7 @@ bot.on('callback_query', async (query) => {
         return;
     }
 
-        // ==========================================
+    // ==========================================
     // RELEASE CORRECTED ESSAYS HANDLER (PDF VERSION)
     // ==========================================
     if (data.startsWith('setwrit_release_')) {
@@ -491,35 +491,35 @@ bot.on('callback_query', async (query) => {
             }
             
             // Clear the graded essays array after releasing them so they aren't sent twice
-await withDB(db => {
-    if (db.gradedEssays) db.gradedEssays[group] = [];
-});
+            await withDB(db => {
+                if (db.gradedEssays) db.gradedEssays[group] = [];
+            });
 
-// ===== Automatic summary message to the group =====
-try {
-    const groupChatId = group === 'scientific' 
-        ? process.env.TELEGRAM_GROUP_CHAT_ID 
-        : process.env.TELEGRAM_LITERATURE_GROUP_CHAT_ID;
+            // ===== Automatic summary message to the group =====
+            try {
+                const groupChatId = group === 'scientific' 
+                    ? process.env.TELEGRAM_GROUP_CHAT_ID 
+                    : process.env.TELEGRAM_LITERATURE_GROUP_CHAT_ID;
 
-    if (groupChatId) {
-        let summary = `📊 *Writing Expression Results – ${group.toUpperCase()}*\n\n`;
+                if (groupChatId) {
+                    let summary = `📊 *Writing Expression Results – ${group.toUpperCase()}*\n\n`;
         
-        gradedEssays.forEach((essay, i) => {
-            summary += `${i + 1}. \( {essay.username} — * \){essay.grade}/100*\n`;
-        });
+                    gradedEssays.forEach((essay, i) => {
+                        summary += `${i + 1}. \( {essay.username} — * \){essay.grade}/100*\n`;
+                    });
 
-        summary += `\n_Total: ${gradedEssays.length} students_`;
+                    summary += `\n_Total: ${gradedEssays.length} students_`;
 
-        await bot.sendMessage(groupChatId, summary, { parse_mode: 'Markdown' });
-    }
-} catch (err) {
-    console.error('Failed to send summary to group:', err.message);
-}
-// ===== End of automatic message =====
+                    await bot.sendMessage(groupChatId, summary, { parse_mode: 'Markdown' });
+                }
+            } catch (err) {
+                console.error('Failed to send summary to group:', err.message);
+            }
+            // ===== End of automatic message =====
 
-await bot.editMessageText(`✅ Released ${gradedEssays.length} PDF(s) for ${group}.\nSummary sent to the group.`, {
-    chat_id: chatId, message_id: query.message.message_id
-});
+            await bot.editMessageText(`✅ Released ${gradedEssays.length} PDF(s) for ${group}.\nSummary sent to the group.`, {
+                chat_id: chatId, message_id: query.message.message_id
+            });
             
         } catch (err) {
             console.error('Release Essays error:', err.message);
