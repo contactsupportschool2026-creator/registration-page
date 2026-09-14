@@ -453,8 +453,8 @@ bot.on('callback_query', async (query) => {
         return;
     }
 
-    // ==========================================
-    // RELEASE CORRECTED ESSAYS HANDLER
+        // ==========================================
+    // RELEASE CORRECTED ESSAYS HANDLER (PDF VERSION)
     // ==========================================
     if (data.startsWith('setwrit_release_')) {
         const group = data.replace('setwrit_release_', '');
@@ -471,41 +471,31 @@ bot.on('callback_query', async (query) => {
                 return;
             }
             
-            await bot.answerCallbackQuery(query.id, { text: 'Releasing essays...' });
-            await bot.editMessageText(`⏳ Sending ${gradedEssays.length} corrected essay(s) for ${group}...`, {
+            await bot.answerCallbackQuery(query.id, { text: 'Generating PDFs...' });
+            await bot.editMessageText(`⏳ Generating ${gradedEssays.length} PDF(s) for ${group}...`, {
                 chat_id: chatId, message_id: query.message.message_id
             });
 
+            const { generateEssayPDF } = require('./pdf');
+            
             for (const essay of gradedEssays) {
-                let cleanContent = essay.correctedContent;
+                const pdfBuffer = await generateEssayPDF(essay);
+                await bot.sendDocument(chatId, pdfBuffer, {
+                    caption: `📄 ${essay.username} - Grade: ${essay.grade}/100`
+                }, {
+                    filename: `${essay.username.replace('@','')}_essay.pdf`,
+                    contentType: 'application/pdf'
+                });
                 
-                // Convert HTML formatting to Telegram formatting
-                cleanContent = cleanContent.replace(/<span class="pen-red"[^>]*>(.*?)<\/span>/g, '<s>$1</s>'); // Strikethrough
-                cleanContent = cleanContent.replace(/<span class="highlight-yellow"[^>]*>(.*?)<\/span>/g, '<b>$1</b>'); // Bold
-                cleanContent = cleanContent.replace(/<span class="underline-bold"[^>]*>(.*?)<\/span>/g, '<u>$1</u>'); // Underline
-                cleanContent = cleanContent.replace(/<br\s*\/?>/g, '\n'); // Line breaks
-                
-                // Remove any remaining HTML tags
-                cleanContent = cleanContent.replace(/<[^>]*>?/gm, '');
-                
-                const msg = `✍️ *Corrected Writing Expression*\n\n` +
-                    `👤 *Student:* ${essay.username}\n` +
-                    `📊 *Grade:* ${essay.grade}/100\n\n` +
-                    `📝 *Teacher Notes:*\n${essay.notes || 'None'}\n\n` +
-                    `📃 *Corrected Essay:*\n${cleanContent}`;
-
-                await safeSend(chatId, msg, { parse_mode: 'HTML' });
-                
-                // Small delay to avoid hitting Telegram API limits
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            // Clear the graded essays array after releasing them
+            // Clear the graded essays array after releasing them so they aren't sent twice
             await withDB(db => {
                 if (db.gradedEssays) db.gradedEssays[group] = [];
             });
             
-            await bot.editMessageText(`✅ Released ${gradedEssays.length} essay(s) for ${group}.\nYou can now forward them to the students.`, {
+            await bot.editMessageText(`✅ Released ${gradedEssays.length} PDF(s) for ${group}.\nYou can now forward them to the students.`, {
                 chat_id: chatId, message_id: query.message.message_id
             });
             
