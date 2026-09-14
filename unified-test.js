@@ -244,7 +244,7 @@ We notice, too, that the civilizations of the past made slavery a practice that 
     }
   },
 
-  "1038": {
+    "1038": {
     id: "1038",
     title: "Ordinary Unethical Behaviour",
     text: `Cheating, deception and other forms of unethical behaviour are widespread in business, sports, schools, and other arenas. While the media focus on extreme cases of cheating, less attention is paid to what researchers call "ordinary unethical behaviour."
@@ -263,15 +263,49 @@ Adapted from: ‘ethicalsystems.org’`,
       "Honest mistake":"خطأ غير مقصود"
     },
     quizData: [
-      {type:"text-group", title:"1. Answer the following questions.",
+      {type:"tf-group", title:"1. Are the following statements true or false? Write T or F next to the letter corresponding to the statement and correct the false one(s).",
         questions:[
-          {id:"1a",text:"1. What is ordinary unethical behaviour?"},
-          {id:"1b",text:"2. Give examples mentioned in the text."}
+          {id:"1a",text:"a) Unethical behaviours are limited to one domain."},
+          {id:"1b",text:"b) Unethical behaviours harm businesses only."},
+          {id:"1c",text:"c) People do not cheat all the time."}
+        ]},
+      {type:"ordering", title:"2. Put the following ideas in the order they appear in the text:",
+        items:[
+          {id:"2a", text:"a) Cheaters don’t feel they are dishonest."},
+          {id:"2b", text:"b) Cheaters go beyond morals when cheating."},
+          {id:"2c", text:"c) Ordinary people may have the desire to cheat."}
+        ]},
+      {type:"text-group", title:"3. Answer the following questions according to the text:",
+        questions:[
+          {id:"3a",text:"a) Do the media today report all forms of cheating? Justify."},
+          {id:"3b",text:"b) What dilemma do people face when confronting the opportunity to cheat?"},
+          {id:"3c",text:"c) How do cheaters justify their unethical behaviour?"}
+        ]},
+      {type:"text-group", title:"4. WHAT or WHO do the underlined words in the text refer to?",
+        questions:[
+          {id:"4a",text:"a) These behaviours (§2)"},
+          {id:"4b",text:"b) which (§3)"}
+        ]},
+      {type:"text-group", title:"5. Find in the text words or phrases that are opposite in meaning to the following:",
+        questions:[
+          {id:"5a",text:"a) more (§1) ≠"},
+          {id:"5b",text:"b) cheap (§2) ≠"},
+          {id:"5c",text:"c) abandon (§3) ≠"}
         ]}
     ],
     answers: {
-      "1a":["cheating","deception","unethical behaviour"],
-      "1b":["stealing","cheating on exams"]
+      "1a":"False",
+      "1b":"False",
+      "1c":"True",
+      order:{"2c":1,"2b":2,"2a":3},
+      "3a":["no","extreme cases","less attention","ordinary"],
+      "3b":["conflict","positive self-image","self-interest","crossing ethical boundaries"],
+      "3c":["cheat a little","reinterpreting","honest mistake"],
+      "4a":["stealing","employer","cheating on exams"],
+      "4b":["point"],
+      "5a":["less"],
+      "5b":["costly"],
+      "5c":["maintain"]
     }
   }
 };
