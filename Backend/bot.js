@@ -397,9 +397,10 @@ bot.on('callback_query', async (query) => {
             { id: '1038', title: 'Ordinary Unethical Behaviour' }
         ];
 
+        // FIXED: Proper string interpolation for callback_data
         const buttons = tests.map(t => ([{
             text: `${t.id} - ${t.title}`,
-            callback_data: `settest_choose_\( {group}_ \){t.id}`
+            callback_data: `settest_choose_${group}_${t.id}`
         }]));
 
         // Add Cancel Current Test button
@@ -424,11 +425,12 @@ bot.on('callback_query', async (query) => {
         const group = data.replace('settest_clear_', '');
 
         await withDB(db => {
-    if (!db.activeTests) {
-        db.activeTests = { scientific: null, literature: null };
-    }
-    db.activeTests[group] = null;
-});
+            if (!db.activeTests) {
+                db.activeTests = { scientific: null, literature: null };
+            }
+            db.activeTests[group] = null;
+        });
+        
         await bot.editMessageText(`✅ Active test for *${group}* has been cancelled.`, {
             chat_id: chatId,
             message_id: query.message.message_id,
@@ -441,20 +443,33 @@ bot.on('callback_query', async (query) => {
 
     // Step 3: A specific test was chosen
     if (data.startsWith('settest_choose_')) {
+        // FIXED: Properly parse the callback data (e.g., 'settest_choose_scientific_1032')
         const parts = data.replace('settest_choose_', '').split('_');
         const group = parts[0]; // scientific or literature
         const testId = parts[1]; // 1032, 1033, etc.
 
-        // Save the active test
-        // Because the current DB is an array, we will store activeTests in a special entry
-        // or better: we update the structure.
-
         await withDB(db => {
-    if (!db.activeTests) {
-        db.activeTests = { scientific: null, literature: null };
+            if (!db.activeTests) {
+                db.activeTests = { scientific: null, literature: null };
+            }
+            db.activeTests[group] = testId;
+        });
+
+        // FIXED: Proper string interpolation for confirmation message
+        await bot.editMessageText(
+            `✅ Test *${testId}* is now active for the *${group}* group.`,
+            {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'Markdown'
+            }
+        );
+        await bot.answerCallbackQuery(query.id, { text: 'Test assigned!' });
+        pendingSetTest.delete(chatId);
+        return;
     }
-    db.activeTests[group] = testId;
 });
+
         // IMPORTANT: Because the current database.json is a pure array,
         // we need a small change in db handling.
         // I will give you the clean solution next.
