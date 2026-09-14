@@ -14,9 +14,6 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, '..')));
 initializeDB();
 
-console.log('DEBUG: chargily key set=', Boolean(process.env.CHARGILY_SECRET_KEY_2));
-console.log('DEBUG: chargily key len=', (process.env.CHARGILY_SECRET_KEY_2 || '').length);
-
 function telegramNotify(text) {
     if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
     const TELEGRAM_API = 'https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage';
@@ -48,7 +45,6 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
     const signature = req.headers['signature'];
     if (!signature) return res.status(401).json({ error: 'Missing signature' });
     if (!verifyChargilySignature(rawBody, signature)) return res.status(401).json({ error: 'Invalid signature' });
-    console.log('Webhook signature verified');
 
     let payload;
     try { payload = JSON.parse(rawBody.toString('utf-8')); } catch (e) { return res.status(400).json({ error: 'Invalid JSON' }); }
@@ -58,49 +54,35 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
         if (!lockInvoice(invoiceId)) return res.status(200).send('OK');
         try {
             const snapshot = await withDB(db => {
-                const idx = db.findIndex(s => s.invoiceId === invoiceId || s.renewalInvoiceId === invoiceId || (s.paymentHistory && s.paymentHistory.some(p => p.invoiceId === invoiceId)));
-                if (idx !== -1 && (db[idx].status === 'pending' || db[idx].status === 'paid')) {
+                if (!db.students) db.students = [];
+                const idx = db.students.findIndex(s => s.invoiceId === invoiceId || s.renewalInvoiceId === invoiceId || (s.paymentHistory && s.paymentHistory.some(p => p.invoiceId === invoiceId)));
+                if (idx !== -1 && (db.students[idx].status === 'pending' || db.students[idx].status === 'paid')) {
                     const now = new Date(), exp = new Date(now);
                     exp.setDate(exp.getDate() + 30);
-                    const isRenewal = db[idx].status === 'paid';
-                    db[idx].status = 'paid';
-                    // Only set start date on FIRST payment — preserve on renewals
-                    if (!db[idx].subscriptionStartDate) {
-                        db[idx].subscriptionStartDate = now.toISOString();
+                    db.students[idx].status = 'paid';
+                    if (!db.students[idx].subscriptionStartDate) {
+                        db.students[idx].subscriptionStartDate = now.toISOString();
                     }
-                    db[idx].subscriptionEndDate = exp.toISOString();
-                    db[idx].renewalCount = (db[idx].renewalCount || 0) + 1;
-                    // Track each payment in paymentHistory
-                    if (!db[idx].paymentHistory) db[idx].paymentHistory = [];
-                    db[idx].paymentHistory.push({
+                    db.students[idx].subscriptionEndDate = exp.toISOString();
+                    db.students[idx].renewalCount = (db.students[idx].renewalCount || 0) + 1;
+                    if (!db.students[idx].paymentHistory) db.students[idx].paymentHistory = [];
+                    db.students[idx].paymentHistory.push({
                         date: now.toISOString(),
                         amount: 2000,
                         currency: 'DZD',
-                        invoiceId: db[idx].invoiceId,
-                        renewalNumber: db[idx].renewalCount
+                        invoiceId: db.students[idx].invoiceId,
+                        renewalNumber: db.students[idx].renewalCount
                     });
-                    return { ...db[idx] };
+                    return { ...db.students[idx] };
                 }
                 return null;
             });
             if (snapshot) {
                 const s = snapshot;
-                const nizamiText = s.isNizami ? '\u0646\u0638\u0627\u0645\u064A' : '\u062D\u0631';
                 const newExpiry = s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : 'N/A';
-                const msg = '\uD83D\uDFE2 *\u062F\u0641\u0639\u0629 \u062C\u062F\u064A\u062F\u0629 \u0646\u0627\u062C\u062D\u0629!*\n\n' +
-                    '\uD83E\uDD50 **\u0627\u0644\u0625\u0633\u0645:** ' + s.firstName + ' ' + s.lastName + '\n' +
-                    '\uD83D\uDCE7 **\u0627\u0644\u0628\u0631\u064A\u062F:** ' + s.email + '\n' +
-                    '\uD83D\uDCC5 **\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0645\u064A\u0644\u0627\u062F:** ' + s.dob + '\n' +
-                    '\uD83C\uDFD9\uFE0F **\u0627\u0644\u0648\u0644\u0627\u064A\u0629:** ' + s.wilaya + '\n' +
-                    '\uD83D\uDCDA **\u0627\u0644\u0634\u0639\u0628\u0629:** ' + s.shaba + '\n' +
-                    '\uD83C\uDFEB **\u0646\u0648\u0639\u064A\u0629 \u0627\u0644\u062A\u0639\u0644\u064A\u0645:** ' + nizamiText + '\n' +
-                    '\uD83C\uDFEB **\u0627\u0633\u0645 \u0627\u0644\u062B\u0627\u0646\u0648\u064A\u0629:** ' + s.schoolName + '\n\n' +
-                    '\uD83D\uDC8E **\u0627\u0644\u062D\u0627\u0644\u0629:** \u0645\u062F\u0641\u0648\u0639 (2000 \u062F\u062C)\n' +
-                    '\uD83D\uDCC6 **\u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643 \u062D\u062A\u0649:** ' + newExpiry + '\n' +
-                    '\uD83D\uDCC1 **\u0639\u0627\u062F \u0627\u0644\u062A\u062C\u062F\u064A\u062F\u0627\u062A:** ' + s.renewalCount;
-                const sup = '\n\n_For any issues, contact: @' + process.env.TELEGRAM_SUPPORT_USERNAME + '_';
+                const msg = `🟢 *دفعة جديدة ناجحة!*\n\n🥇 **الإسم:** ${s.fullName}\n📧 **البريد:** ${s.email}\n📅 **تاريخ الميلاد:** ${s.dob}\n🏙️ **الولاية:** ${s.wilaya}\n📚 **الشعبة:** ${s.shaba}\n🏫 **نوعية التعليم:** ${s.isNizami ? 'نظامي' : 'حر'}\n🏫 **اسم الثانوية:** ${s.schoolName}\n\n💎 **الحالة:** مدفوع (2000 دج)\n⏳ **الاشتراك حتى:** ${newExpiry}\n🔁 **عدد التجديدات:** ${s.renewalCount}`;
+                const sup = `\n\n_For any issues, contact: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
                 await telegramNotify(msg + sup);
-                console.log('Payment confirmed:', s.firstName, s.lastName);
             }
         } catch (error) { console.error('Webhook Error:', error.message); }
         finally { unlockInvoice(invoiceId); }
@@ -109,8 +91,9 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
 });
 
 app.use(express.json());
+
 // ==========================================
-// API: Check Username (Used by HTML quizzes)
+// API: Check Username
 // ==========================================
 app.get('/api/check-username', async (req, res) => {
     try {
@@ -118,8 +101,8 @@ app.get('/api/check-username', async (req, res) => {
         if (!requestedUsername) return res.json({ valid: false });
 
         const db = await readDB();
-        // Check if any student in the database has this Telegram username
-        const studentExists = db.some(s => s.username && s.username.toLowerCase().replace('@', '') === requestedUsername);
+        const students = db.students || [];
+        const studentExists = students.some(s => s.username && s.username.toLowerCase().replace('@', '') === requestedUsername);
 
         res.json({ valid: studentExists });
     } catch (error) {
@@ -139,26 +122,28 @@ app.get('/api/get-assigned-test', async (req, res) => {
         }
 
         const db = await readDB();
-        
-        // Support both old array format and new object format
-        const students = Array.isArray(db) ? db : (db.students || []);
-        const activeTests = Array.isArray(db) ? {} : (db.activeTests || {});
+        const students = db.students || [];
+        const activeTests = db.activeTests || {};
 
         const student = students.find(s => 
             s.username && s.username.toLowerCase().replace('@', '') === requestedUsername
         );
 
         if (!student) {
-            return res.json({ valid: false, message: 'Username not found' });
+            return res.json({ valid: false, message: 'Username not found. Make sure your account is registered and you joined the bot.' });
         }
 
-        // Determine group from shaba
+        // Determine group from shaba (Specialty)
         const scientificShabas = [
             'sciences expérimentales',
             'mathématiques',
             'technique mathématiques',
             'technique sciences expérimentales',
-            'informatique'
+            'informatique',
+            'maths',
+            'math',
+            'science',
+            'sciences'
         ];
 
         const shaba = (student.shaba || '').toLowerCase();
@@ -171,7 +156,7 @@ app.get('/api/get-assigned-test', async (req, res) => {
                 valid: true, 
                 active: false, 
                 group,
-                message: 'There is no active test at the moment' 
+                message: `There is no active test at the moment for the ${group} group.` 
             });
         }
 
@@ -189,7 +174,7 @@ app.get('/api/get-assigned-test', async (req, res) => {
 });
 
 // ==========================================
-// API: Send Quiz Result to Telegram (Used by Advice & IWish quizzes)
+// API: Send Quiz Result to Telegram
 // ==========================================
 app.post('/api/send-quiz-result', async (req, res) => {
     try {
@@ -213,8 +198,6 @@ app.post('/api/send-quiz-result', async (req, res) => {
 app.get('/api/debug/env', (req, res) => {
     res.json({
         has_chargily_key: Boolean(process.env.CHARGILY_SECRET_KEY_2),
-        key_length: (process.env.CHARGILY_SECRET_KEY_2 || '').length,
-        key_prefix: (process.env.CHARGILY_SECRET_KEY_2 || '').slice(0, 8),
         frontend_url: process.env.FRONTEND_URL,
         backend_url: process.env.BACKEND_URL,
         has_telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN)
@@ -222,10 +205,9 @@ app.get('/api/debug/env', (req, res) => {
 });
 
 app.post('/api/create-checkout', async (req, res) => {
-        try {
-        const { fullName, telegramUsername, dob, wilaya, shaba, isNizami, schoolName } = req.body;
+    try {
+        const { fullName, telegramUsername, dob, wilaya, shaba, isNizami, schoolName, email } = req.body;
         
-        // Format username to ensure it starts with '@'
         let formattedUsername = telegramUsername.trim();
         if (!formattedUsername.startsWith('@')) {
             formattedUsername = '@' + formattedUsername;
@@ -233,7 +215,8 @@ app.post('/api/create-checkout', async (req, res) => {
 
         const studentData = { 
             fullName, 
-            username: formattedUsername, // Saved as 'username' to match the bot logic
+            email: email || 'student@example.com',
+            username: formattedUsername, 
             dob, 
             wilaya, 
             shaba, 
@@ -259,8 +242,6 @@ app.post('/api/create-checkout', async (req, res) => {
             metadata: { full_name: fullName, telegram: formattedUsername, wilaya, shaba } 
         };
 
-        console.log('DEBUG: Creating chargily checkout', JSON.stringify(chargilyPayload));
-
         const chargilyResponse = await withRetry(
             () => axios.post('https://pay.chargily.net/api/v2/checkouts', chargilyPayload, {
                 headers: { 'Authorization': 'Bearer ' + process.env.CHARGILY_SECRET_KEY_2, 'Content-Type': 'application/json' }
@@ -269,9 +250,12 @@ app.post('/api/create-checkout', async (req, res) => {
         );
 
         studentData.invoiceId = chargilyResponse.data.id;
-        await withDB(db => db.push(studentData));
         
-        // Update Telegram notification to show FullName and Telegram Username
+        await withDB(db => {
+            if (!db.students) db.students = [];
+            db.students.push(studentData);
+        });
+        
         await telegramNotify('*New Registration*\nName: ' + fullName + '\nTelegram: ' + formattedUsername + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
 
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
@@ -281,10 +265,8 @@ app.post('/api/create-checkout', async (req, res) => {
         let errorMsg = error.message, errorStatus = 500;
         if (error.response) {
             errorStatus = error.response.status;
-            console.error('Status:', errorStatus, 'Data:', JSON.stringify(error.response.data));
             if (error.response.data) {
-                if (typeof error.response.data === 'string') errorMsg = error.response.data;
-                else errorMsg = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
+                errorMsg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.message || JSON.stringify(error.response.data));
             }
         }
         await telegramNotify('❌ *CHECKOUT FAILED*\nError: ' + errorMsg + '\nStatus: ' + errorStatus);
@@ -295,7 +277,8 @@ app.post('/api/create-checkout', async (req, res) => {
 app.get('/api/check-payment/:invoiceId', async (req, res) => {
     try {
         const db = await readDB();
-        const student = db.find(s => s.invoiceId === req.params.invoiceId);
+        const students = db.students || [];
+        const student = students.find(s => s.invoiceId === req.params.invoiceId);
         if (student && student.status === 'paid') {
             res.json({ success: true, groupLink: process.env.TELEGRAM_GROUP_LINK, botLink: 'https://t.me/' + process.env.TELEGRAM_BOT_USERNAME + '?start=' + student.invoiceId });
         } else {
@@ -310,8 +293,6 @@ app.get('/api/check-payment/:invoiceId', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log('Server running on port ' + PORT);
-
-    // Start the Telegram bot (polling + cron jobs) AFTER server is up
     try {
         require('./bot');
     } catch (error) {
