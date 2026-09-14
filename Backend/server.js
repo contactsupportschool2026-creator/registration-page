@@ -10,15 +10,15 @@ const { withRetry }                    = require('./retry');
 
 const app = express();
 app.use(cors());
-
 app.use(express.static(path.join(__dirname, '..')));
 initializeDB();
 
-function telegramNotify(text) {
-    if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) return;
+function telegramNotify(text, chatId = null) {
+    if (!process.env.TELEGRAM_BOT_TOKEN) return;
+    const targetChatId = chatId || process.env.TELEGRAM_CHAT_ID;
     const TELEGRAM_API = 'https://api.telegram.org/bot' + process.env.TELEGRAM_BOT_TOKEN + '/sendMessage';
     return axios.post(TELEGRAM_API, {
-        chat_id: process.env.TELEGRAM_CHAT_ID,
+        chat_id: targetChatId,
         text: text,
         parse_mode: 'Markdown'
     }, { timeout: 10000 }).catch(e => console.error('Telegram notify failed:', e.message));
@@ -60,9 +60,7 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
                     const now = new Date(), exp = new Date(now);
                     exp.setDate(exp.getDate() + 30);
                     db.students[idx].status = 'paid';
-                    if (!db.students[idx].subscriptionStartDate) {
-                        db.students[idx].subscriptionStartDate = now.toISOString();
-                    }
+                    if (!db.students[idx].subscriptionStartDate) db.students[idx].subscriptionStartDate = now.toISOString();
                     db.students[idx].subscriptionEndDate = exp.toISOString();
                     db.students[idx].renewalCount = (db.students[idx].renewalCount || 0) + 1;
                     if (!db.students[idx].paymentHistory) db.students[idx].paymentHistory = [];
@@ -92,18 +90,13 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
 
 app.use(express.json());
 
-// ==========================================
-// API: Check Username
-// ==========================================
 app.get('/api/check-username', async (req, res) => {
     try {
         const requestedUsername = (req.query.username || '').toLowerCase().replace('@', '').trim();
         if (!requestedUsername) return res.json({ valid: false });
-
         const db = await readDB();
         const students = db.students || [];
         const studentExists = students.some(s => s.username && s.username.toLowerCase().replace('@', '') === requestedUsername);
-
         res.json({ valid: studentExists });
     } catch (error) {
         console.error('Check Username Error:', error.message);
@@ -111,61 +104,35 @@ app.get('/api/check-username', async (req, res) => {
     }
 });
 
-// ==========================================
-// API: Get Assigned Test for a student
-// ==========================================
 app.get('/api/get-assigned-test', async (req, res) => {
     try {
         const requestedUsername = (req.query.username || '').toLowerCase().replace('@', '').trim();
-        if (!requestedUsername) {
-            return res.json({ valid: false, message: 'Username is required' });
-        }
+        if (!requestedUsername) return res.json({ valid: false, message: 'Username is required' });
 
         const db = await readDB();
         const students = db.students || [];
         const activeTests = db.activeTests || {};
+        const activeWriting = db.activeWriting || {};
 
-        const student = students.find(s => 
-            s.username && s.username.toLowerCase().replace('@', '') === requestedUsername
-        );
+        const student = students.find(s => s.username && s.username.toLowerCase().replace('@', '') === requestedUsername);
 
-        if (!student) {
-            return res.json({ valid: false, message: 'Username not found. Make sure your account is registered and you joined the bot.' });
-        }
+        if (!student) return res.json({ valid: false, message: 'Username not found. Make sure your account is registered and you joined the bot.' });
 
-        // Determine group from shaba (Specialty)
-        const scientificShabas = [
-            'sciences expérimentales',
-            'mathématiques',
-            'technique mathématiques',
-            'technique sciences expérimentales',
-            'informatique',
-            'maths',
-            'math',
-            'science',
-            'sciences'
-        ];
-
+        const scientificShabas = ['sciences expérimentales', 'mathématiques', 'technique mathématiques', 'technique sciences expérimentales', 'informatique', 'maths', 'math', 'science', 'sciences'];
         const shaba = (student.shaba || '').toLowerCase();
         const group = scientificShabas.includes(shaba) ? 'scientific' : 'literature';
 
-        const testId = activeTests[group] || null;
-
-        if (!testId) {
-            return res.json({ 
-                valid: true, 
-                active: false, 
-                group,
-                message: `There is no active test at the moment for the ${group} group.` 
-            });
+        // Check for active Reading Test first
+        if (activeTests[group]) {
+            return res.json({ valid: true, type: 'reading', testId: activeTests[group], group });
+        }
+        
+        // Check for active Writing Expression
+        if (activeWriting[group]) {
+            return res.json({ valid: true, type: 'writing', topicId: activeWriting[group], group });
         }
 
-        res.json({ 
-            valid: true, 
-            active: true, 
-            testId, 
-            group 
-        });
+        res.json({ valid: true, active: false, group, message: `There is no active test at the moment for the ${group} group.` });
 
     } catch (error) {
         console.error('Get Assigned Test Error:', error.message);
@@ -174,20 +141,109 @@ app.get('/api/get-assigned-test', async (req, res) => {
 });
 
 // ==========================================
-// API: Send Quiz Result to Telegram
+// TEACHER & WRITING APIS
 // ==========================================
+app.post('/api/teacher-login', (req, res) => {
+    const { password } = req.body;
+    if (password === process.env.TEACHER_PASSWORD) {
+        return res.json({ success: true });
+    }
+    res.json({ success: false });
+});
+
+app.post('/api/submit-essay', async (req, res) => {
+    try {
+        const { username, group, topicId, content } = req.body;
+        if (!username || !group || !topicId || !content) return res.status(400).json({ success: false });
+
+        await withDB(db => {
+            if (!db.submittedEssays) db.submittedEssays = { scientific: [], literature: [] };
+            db.submittedEssays[group].push({
+                id: Date.now().toString(),
+                username,
+                topicId,
+                content
+            });
+        });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Submit Essay Error:', error.message);
+        res.status(500).json({ success: false });
+    }
+});
+
+app.get('/api/get-essays-for-correction', async (req, res) => {
+    try {
+        const { group } = req.query;
+        const db = await readDB();
+        const essays = (db.submittedEssays && db.submittedEssays[group]) || [];
+        res.json({ essays });
+    } catch (error) {
+        res.status(500).json({ essays: [] });
+    }
+});
+
+app.post('/api/submit-essay-grade', async (req, res) => {
+    try {
+        const { essayId, group, grade, notes, correctedContent } = req.body;
+        let queueEmpty = false;
+
+        await withDB(db => {
+            if (!db.submittedEssays) db.submittedEssays = { scientific: [], literature: [] };
+            if (!db.gradedEssays) db.gradedEssays = { scientific: [], literature: [] };
+            
+            const essayIdx = db.submittedEssays[group].findIndex(e => e.id === essayId);
+            if (essayIdx !== -1) {
+                const essay = db.submittedEssays[group][essayIdx];
+                
+                db.gradedEssays[group].push({
+                    username: essay.username,
+                    grade: parseInt(grade),
+                    notes,
+                    originalContent: essay.content,
+                    correctedContent
+                });
+                
+                db.submittedEssays[group].splice(essayIdx, 1);
+                
+                if (db.submittedEssays[group].length === 0) {
+                    queueEmpty = true;
+                }
+            }
+        });
+
+        // If queue is empty, send leaderboard to the CORRECT group ID
+        if (queueEmpty) {
+            const db = await readDB();
+            const graded = (db.gradedEssays && db.gradedEssays[group]) || [];
+            graded.sort((a, b) => b.grade - a.grade);
+            
+            let leaderboardMsg = `📢 *The grades for the writing expressions are available for review (${group.toUpperCase()})*\n\n🏆 *Top Grades:*\n`;
+            graded.slice(0, 5).forEach((e, i) => {
+                leaderboardMsg += `${i + 1}. ${e.username} - ${e.grade}/100\n`;
+            });
+
+            // Using your exact Render Environment Variable Names
+            const groupId = group === 'scientific' ? process.env.TELEGRAM_GROUP_CHAT_ID : process.env.TELEGRAM_LITERATURE_GROUP_CHAT_ID;
+            await telegramNotify(leaderboardMsg, groupId);
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Submit Grade Error:', error.message);
+        res.status(500).json({ success: false });
+    }
+});
+
 app.post('/api/send-quiz-result', async (req, res) => {
     try {
         const { quizName, username, score } = req.body;
-        if (!quizName || !username || score === undefined) {
-            return res.status(400).json({ success: false, error: 'Missing fields' });
-        }
+        if (!quizName || !username || score === undefined) return res.status(400).json({ success: false, error: 'Missing fields' });
 
         const datePart = req.body.date ? ` | Date: ${req.body.date}` : '';
         const timePart = req.body.time ? ` | Time: ${req.body.time}` : '';
         const message = `📝 *New Quiz Result*\n\nQuiz: ${quizName} | Username: ${username}${datePart}${timePart} | Score: ${score}`;
         await telegramNotify(message);
-
         res.json({ success: true });
     } catch (error) {
         console.error('Send Quiz Result Error:', error.message);
@@ -195,51 +251,22 @@ app.post('/api/send-quiz-result', async (req, res) => {
     }
 });
 
-app.get('/api/debug/env', (req, res) => {
-    res.json({
-        has_chargily_key: Boolean(process.env.CHARGILY_SECRET_KEY_2),
-        frontend_url: process.env.FRONTEND_URL,
-        backend_url: process.env.BACKEND_URL,
-        has_telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN)
-    });
-});
-
 app.post('/api/create-checkout', async (req, res) => {
     try {
         const { fullName, telegramUsername, dob, wilaya, shaba, isNizami, schoolName, email } = req.body;
-        
         let formattedUsername = telegramUsername.trim();
-        if (!formattedUsername.startsWith('@')) {
-            formattedUsername = '@' + formattedUsername;
-        }
+        if (!formattedUsername.startsWith('@')) formattedUsername = '@' + formattedUsername;
 
         const studentData = { 
-            fullName, 
-            email: email || 'student@example.com',
-            username: formattedUsername, 
-            dob, 
-            wilaya, 
-            shaba, 
-            isNizami, 
-            schoolName, 
-            status: 'pending', 
-            subscriptionStartDate: null, 
-            subscriptionEndDate: null, 
-            chatId: null, 
-            invoiceId: null, 
-            warnedTimestamp: null, 
-            linkSentTimestamp: null, 
-            renewalCount: 0 
+            fullName, email: email || 'student@example.com', username: formattedUsername, dob, wilaya, shaba, isNizami, schoolName, 
+            status: 'pending', subscriptionStartDate: null, subscriptionEndDate: null, chatId: null, invoiceId: null, 
+            warnedTimestamp: null, linkSentTimestamp: null, renewalCount: 0 
         };
         
         const chargilyPayload = { 
-            amount: 2000, 
-            currency: 'dzd', 
-            payment_method: 'edahabia', 
-            success_url: process.env.FRONTEND_URL + '/payment.html', 
-            webhook_endpoint: process.env.BACKEND_URL + '/api/webhook/chargily', 
-            description: 'School Registration: ' + fullName, 
-            metadata: { full_name: fullName, telegram: formattedUsername, wilaya, shaba } 
+            amount: 2000, currency: 'dzd', payment_method: 'edahabia', 
+            success_url: process.env.FRONTEND_URL + '/payment.html', webhook_endpoint: process.env.BACKEND_URL + '/api/webhook/chargily', 
+            description: 'School Registration: ' + fullName, metadata: { full_name: fullName, telegram: formattedUsername, wilaya, shaba } 
         };
 
         const chargilyResponse = await withRetry(
@@ -250,42 +277,42 @@ app.post('/api/create-checkout', async (req, res) => {
         );
 
         studentData.invoiceId = chargilyResponse.data.id;
-        
-        await withDB(db => {
-            if (!db.students) db.students = [];
-            db.students.push(studentData);
-        });
-        
+        await withDB(db => { if (!db.students) db.students = []; db.students.push(studentData); });
         await telegramNotify('*New Registration*\nName: ' + fullName + '\nTelegram: ' + formattedUsername + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
-
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
-            
     } catch (error) {
         console.error('Checkout Error:', error.message);
         let errorMsg = error.message, errorStatus = 500;
         if (error.response) {
             errorStatus = error.response.status;
-            if (error.response.data) {
-                errorMsg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.message || JSON.stringify(error.response.data));
-            }
+            if (error.response.data) errorMsg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.message || JSON.stringify(error.response.data));
         }
         await telegramNotify('❌ *CHECKOUT FAILED*\nError: ' + errorMsg + '\nStatus: ' + errorStatus);
         res.status(errorStatus).json({ error: errorMsg });
     }
 });
 
+// UPDATED: Now redirects to the correct group link based on student's shaba
 app.get('/api/check-payment/:invoiceId', async (req, res) => {
     try {
         const db = await readDB();
-        const students = db.students || [];
-        const student = students.find(s => s.invoiceId === req.params.invoiceId);
+        const student = (db.students || []).find(s => s.invoiceId === req.params.invoiceId);
         if (student && student.status === 'paid') {
-            res.json({ success: true, groupLink: process.env.TELEGRAM_GROUP_LINK, botLink: 'https://t.me/' + process.env.TELEGRAM_BOT_USERNAME + '?start=' + student.invoiceId });
+            const scientificShabas = ['sciences expérimentales', 'mathématiques', 'technique mathématiques', 'technique sciences expérimentales', 'informatique', 'maths', 'math', 'science', 'sciences'];
+            const shaba = (student.shaba || '').toLowerCase();
+            const isScientific = scientificShabas.includes(shaba);
+            
+            const groupLink = isScientific ? process.env.TELEGRAM_GROUP_LINK : process.env.TELEGRAM_LITERATURE_GROUP_LINK;
+            
+            res.json({ 
+                success: true, 
+                groupLink: groupLink, 
+                botLink: 'https://t.me/' + process.env.TELEGRAM_BOT_USERNAME + '?start=' + student.invoiceId 
+            });
         } else {
             res.json({ success: false });
         }
     } catch (error) {
-        console.error('Check Payment Error:', error.message);
         res.status(500).json({ error: 'Failed to check payment status' });
     }
 });
@@ -293,9 +320,5 @@ app.get('/api/check-payment/:invoiceId', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log('Server running on port ' + PORT);
-    try {
-        require('./bot');
-    } catch (error) {
-        console.error('❌ Bot failed to start — server running without bot:', error.message);
-    }
+    try { require('./bot'); } catch (error) { console.error('❌ Bot failed to start — server running without bot:', error.message); }
 });
