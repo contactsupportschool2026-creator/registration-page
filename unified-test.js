@@ -360,6 +360,8 @@ const pdfBtn = document.getElementById("pdf-btn");
 const startTitle = document.getElementById("start-title");
 const startSubtitle = document.getElementById("start-subtitle");
 const usernameLabel = document.getElementById("username-label");
+const writingArea = document.getElementById('writing-area');
+const wordCountSpan = document.getElementById('word-count');
 
 // ========== INIT ==========
 function init() {
@@ -390,6 +392,7 @@ function init() {
     usernameInput.type = "text";
     usernameInput.placeholder = "@username";
     startBtn.onclick = handleStart;
+    if(pdfBtn) pdfBtn.style.display = "block";
   });
   
   dictCloseBtn.addEventListener("click", () => dictOverlay.classList.remove("active"));
@@ -398,6 +401,22 @@ function init() {
   });
   
   if(pdfBtn) pdfBtn.addEventListener("click", generatePDF);
+    
+  // Word Count Listener
+  if(writingArea) {
+    writingArea.addEventListener('input', () => {
+      let words = writingArea.value.trim().split(/\s+/);
+      if (writingArea.value.trim() === '') words = [];
+      wordCountSpan.textContent = `${words.length} / 120 words`;
+      if (words.length > 120) {
+        wordCountSpan.style.color = 'red';
+        nextBtn.disabled = true;
+      } else {
+        wordCountSpan.style.color = '#999';
+        nextBtn.disabled = false;
+      }
+    });
+  }
 }
 
 async function handleStart() {
@@ -450,6 +469,14 @@ async function handleStart() {
     if (!data.valid) {
       statusMessage.style.display = "block";
       statusMessage.textContent = data.message || "Username not found.";
+      startBtn.disabled = false;
+      startBtn.textContent = "Continue";
+      return;
+    }
+
+    if (data.type === 'already_submitted') {
+      statusMessage.style.display = "block";
+      statusMessage.textContent = data.message;
       startBtn.disabled = false;
       startBtn.textContent = "Continue";
       return;
@@ -1034,18 +1061,5 @@ async function submitGrade() {
     alert("Network error.");
   }
 }
-  const writingArea = document.getElementById('writing-area');
-  const wordCountSpan = document.getElementById('word-count');
-  writingArea.addEventListener('input', () => {
-    let words = writingArea.value.trim().split(/\s+/);
-    if (writingArea.value.trim() === '') words = [];
-    wordCountSpan.textContent = `${words.length} / 120 words`;
-    if (words.length > 120) {
-      wordCountSpan.style.color = 'red';
-      nextBtn.disabled = true;
-    } else {
-      wordCountSpan.style.color = '#999';
-      nextBtn.disabled = false;
-    }
-});
+
 init();
