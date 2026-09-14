@@ -1047,13 +1047,21 @@ async function submitGrade() {
       window.essayQueue = window.essayQueue.filter(e => e.id !== currentEssay.id);
       document.getElementById('essay-count').textContent = window.essayQueue.length;
       
-      if (window.essayQueue.length > 0) {
-        renderNextEssay();
-      } else {
-        document.getElementById('essay-content').innerHTML = "All essays corrected for this group!";
-        document.getElementById('teacher-notes').value = "";
-        document.getElementById('grade-input').value = "";
-      }
+if (window.essayQueue.length > 0) {
+  renderNextEssay();
+} else {
+  document.getElementById('essay-content').innerHTML = "All essays corrected for this group!";
+  document.getElementById('teacher-notes').value = "";
+  document.getElementById('grade-input').value = "";
+
+  // ===== Automatic message to the Telegram group =====
+  fetch('/api/notify-group-grades', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ group: currentGroup })
+  }).catch(err => console.error('Failed to notify group:', err));
+  // ===== End =====
+}
     } else {
       alert("Failed to submit grade.");
     }
