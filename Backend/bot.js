@@ -456,6 +456,9 @@ bot.on('callback_query', async (query) => {
     // ==========================================
     // NEW: RELEASE PDFs HANDLER
     // ==========================================
+        // ==========================================
+    // NEW: RELEASE CORRECTED ESSAYS HANDLER
+    // ==========================================
     if (data.startsWith('setwrit_release_')) {
         const group = data.replace('setwrit_release_', '');
         
@@ -471,48 +474,34 @@ bot.on('callback_query', async (query) => {
                 return;
             }
             
-            await bot.answerCallbackQuery(query.id, { text: 'Generating PDFs...' });
-            await bot.editMessageText(`⏳ Generating ${gradedEssays.length} PDF(s) for ${group}...`, {
+            await bot.answerCallbackQuery(query.id, { text: 'Releasing essays...' });
+            await bot.editMessageText(`⏳ Sending ${gradedEssays.length} corrected essay(s) for ${group}...`, {
                 chat_id: chatId, message_id: query.message.message_id
             });
 
-            // Use pdfkit to generate documents
-            const PDFDocument = require('pdfkit');
-            
             for (const essay of gradedEssays) {
-                const doc = new PDFDocument();
-                const buffers = [];
-                doc.on('data', buffers.push.bind(buffers));
+                // Clean up the HTML from the contenteditable div
+                let cleanContent = essay.correctedContent;
                 
-                const pdfPromise = new Promise((resolve) => {
-                    doc.on('end', () => {
-                        const pdfData = Buffer.concat(buffers);
-                        bot.sendDocument(chatId, pdfData, {
-                            caption: `📄 ${essay.username} - Grade: ${essay.grade}/100`
-                        }, {
-                            filename: `${essay.username.replace('@','')}_essay.pdf`,
-                            contentType: 'application/pdf'
-                        }).then(resolve);
-                    });
-                });
+                // Convert HTML formatting to Telegram formatting
+                cleanContent = cleanContent.replace(/<span class="pen-red"[^>]*>(.*?)<\/span>/g, '<s>$1</s>'); // Strikethrough
+                cleanContent = cleanContent.replace(/<span class="highlight-yellow"[^>]*>(.*?)<\/span>/g, '<b>$1</b>'); // Bold
+                cleanContent = cleanContent.replace(/<span class="underline-bold"[^>]*>(.*?)<\/span>/g, '<u>$1</u>'); // Underline
+                cleanContent = cleanContent.replace(/<br\s*\/?>/g, '\n'); // Line breaks
+                
+                // Remove any remaining HTML tags
+                cleanContent = cleanContent.replace(/<[^>]*>?/gm, '');
+                
+                const msg = `✍️ *Corrected Writing Expression*\n\n` +
+                    `👤 *Student:* ${essay.username}\n` +
+                    `📊 *Grade:* ${essay.grade}/100\n\n` +
+                    `📝 *Teacher Notes:*\n${essay.notes || 'None'}\n\n` +
+                    `📃 *Corrected Essay:*\n${cleanContent}`;
 
-                // Build PDF Content
-                doc.fontSize(16).fillColor('#004d40').text(`Student: ${essay.username}`, { align: 'left' });
-                doc.moveDown(0.5);
-                doc.fontSize(14).fillColor('black').text(`Grade: ${essay.grade}/100`);
-                doc.moveDown(1);
+                await safeSend(chatId, msg, { parse_mode: 'HTML' });
                 
-                doc.fontSize(12).text('Teacher Notes:', { underline: true });
-                doc.text(essay.notes || 'None');
-                doc.moveDown(1);
-                
-                doc.text('Corrected Essay:', { underline: true });
-                // Strip HTML tags from the contenteditable div for clean text in PDF
-                const plainText = essay.correctedContent.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
-                doc.text(plainText);
-                
-                doc.end();
-                await pdfPromise;
+                // Small delay to avoid hitting Telegram API limits
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
             // Clear the graded essays array after releasing them so they aren't sent twice
@@ -520,19 +509,19 @@ bot.on('callback_query', async (query) => {
                 if (db.gradedEssays) db.gradedEssays[group] = [];
             });
             
-            await bot.editMessageText(`✅ Released ${gradedEssays.length} PDF(s) for ${group}.\nYou can now forward them to the students.`, {
+            await bot.editMessageText(`✅ Released ${gradedEssays.length} essay(s) for ${group}.\nYou can now forward them to the students.`, {
                 chat_id: chatId, message_id: query.message.message_id
             });
             
         } catch (err) {
-            console.error('Release PDFs error:', err.message);
-            await bot.editMessageText(`⚠️ Failed to release PDFs: ${err.message}`, {
+            console.error('Release Essays error:', err.message);
+            await bot.editMessageText(`⚠️ Failed to release essays: ${err.message}`, {
                 chat_id: chatId, message_id: query.message.message_id
             });
         }
         return;
     }
-});
+}):
 // ==========================================
 // STATUS, DELETE, EXPORT CALLBACKS
 // ==========================================
