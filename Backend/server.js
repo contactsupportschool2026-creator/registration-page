@@ -65,11 +65,7 @@ app.post('/api/webhook/chargily', express.raw({ type: 'application/json' }), asy
                     db.students[idx].renewalCount = (db.students[idx].renewalCount || 0) + 1;
                     if (!db.students[idx].paymentHistory) db.students[idx].paymentHistory = [];
                     db.students[idx].paymentHistory.push({
-                        date: now.toISOString(),
-                        amount: 2000,
-                        currency: 'DZD',
-                        invoiceId: db.students[idx].invoiceId,
-                        renewalNumber: db.students[idx].renewalCount
+                        date: now.toISOString(), amount: 2000, currency: 'DZD', invoiceId: db.students[idx].invoiceId, renewalNumber: db.students[idx].renewalCount
                     });
                     return { ...db.students[idx] };
                 }
@@ -113,6 +109,7 @@ app.get('/api/get-assigned-test', async (req, res) => {
         const students = db.students || [];
         const activeTests = db.activeTests || {};
         const activeWriting = db.activeWriting || {};
+        const submittedEssays = db.submittedEssays || { scientific: [], literature: [] };
 
         const student = students.find(s => s.username && s.username.toLowerCase().replace('@', '') === requestedUsername);
 
@@ -122,14 +119,21 @@ app.get('/api/get-assigned-test', async (req, res) => {
         const shaba = (student.shaba || '').toLowerCase();
         const group = scientificShabas.includes(shaba) ? 'scientific' : 'literature';
 
-        // Check for active Reading Test first
         if (activeTests[group]) {
             return res.json({ valid: true, type: 'reading', testId: activeTests[group], group });
         }
         
-        // Check for active Writing Expression
         if (activeWriting[group]) {
-            return res.json({ valid: true, type: 'writing', topicId: activeWriting[group], group });
+            // Check if student already submitted
+            const alreadySubmitted = submittedEssays[group].some(e => e.username === student.username);
+            if (alreadySubmitted) {
+                return res.json({ 
+                    valid: true, 
+                    type: 'already_submitted', 
+                    message: 'Your essay has already been submitted. You have to wait until it\'s been corrected. You will be informed once the correction ends through the Telegram group.' 
+                });
+            }
+            return res.json({ valid: true, type: 'writing', topicId: activeWriting[group].id, group });
         }
 
         res.json({ valid: true, active: false, group, message: `There is no active test at the moment for the ${group} group.` });
@@ -140,14 +144,9 @@ app.get('/api/get-assigned-test', async (req, res) => {
     }
 });
 
-// ==========================================
-// TEACHER & WRITING APIS
-// ==========================================
 app.post('/api/teacher-login', (req, res) => {
     const { password } = req.body;
-    if (password === process.env.TEACHER_PASSWORD) {
-        return res.json({ success: true });
-    }
+    if (password === process.env.TEACHER_PASSWORD) return res.json({ success: true });
     res.json({ success: false });
 });
 
@@ -158,12 +157,7 @@ app.post('/api/submit-essay', async (req, res) => {
 
         await withDB(db => {
             if (!db.submittedEssays) db.submittedEssays = { scientific: [], literature: [] };
-            db.submittedEssays[group].push({
-                id: Date.now().toString(),
-                username,
-                topicId,
-                content
-            });
+            db.submittedEssays[group].push({ id: Date.now().toString(), username, topicId, content });
         });
         res.json({ success: true });
     } catch (error) {
@@ -187,6 +181,7 @@ app.post('/api/submit-essay-grade', async (req, res) => {
     try {
         const { essayId, group, grade, notes, correctedContent } = req.body;
         let queueEmpty = false;
+        let topicTitle = 'Writing Expression';
 
         await withDB(db => {
             if (!db.submittedEssays) db.submittedEssays = { scientific: [], literature: [] };
@@ -195,37 +190,35 @@ app.post('/api/submit-essay-grade', async (req, res) => {
             const essayIdx = db.submittedEssays[group].findIndex(e => e.id === essayId);
             if (essayIdx !== -1) {
                 const essay = db.submittedEssays[group][essayIdx];
-                
-                db.gradedEssays[group].push({
-                    username: essay.username,
-                    grade: parseInt(grade),
-                    notes,
-                    originalContent: essay.content,
-                    correctedContent
-                });
-                
+                db.gradedEssays[group].push({ username: essay.username, grade: parseInt(grade), notes, originalContent: essay.content, correctedContent });
                 db.submittedEssays[group].splice(essayIdx, 1);
                 
                 if (db.submittedEssays[group].length === 0) {
                     queueEmpty = true;
+                    if (db.activeWriting && db.activeWriting[group] && db.activeWriting[group].title) {
+                        topicTitle = db.activeWriting[group].title;
+                    }
                 }
             }
         });
 
-        // If queue is empty, send leaderboard to the CORRECT group ID
         if (queueEmpty) {
             const db = await readDB();
             const graded = (db.gradedEssays && db.gradedEssays[group]) || [];
             graded.sort((a, b) => b.grade - a.grade);
             
-            let leaderboardMsg = `📢 *The grades for the writing expressions are available for review (${group.toUpperCase()})*\n\n🏆 *Top Grades:*\n`;
+            let leaderboardMsg = `📢 *The grades for ${topicTitle} are available for review (${group.toUpperCase()})*\n\n🏆 *Top Grades:*\n`;
             graded.slice(0, 5).forEach((e, i) => {
                 leaderboardMsg += `${i + 1}. ${e.username} - ${e.grade}/100\n`;
             });
 
-            // Using your exact Render Environment Variable Names
             const groupId = group === 'scientific' ? process.env.TELEGRAM_GROUP_CHAT_ID : process.env.TELEGRAM_LITERATURE_GROUP_CHAT_ID;
             await telegramNotify(leaderboardMsg, groupId);
+            
+            // Clear active writing so students go back to normal
+            await withDB(db => {
+                db.activeWriting[group] = null;
+            });
         }
 
         res.json({ success: true });
@@ -292,7 +285,6 @@ app.post('/api/create-checkout', async (req, res) => {
     }
 });
 
-// UPDATED: Now redirects to the correct group link based on student's shaba
 app.get('/api/check-payment/:invoiceId', async (req, res) => {
     try {
         const db = await readDB();
@@ -301,14 +293,8 @@ app.get('/api/check-payment/:invoiceId', async (req, res) => {
             const scientificShabas = ['sciences expérimentales', 'mathématiques', 'technique mathématiques', 'technique sciences expérimentales', 'informatique', 'maths', 'math', 'science', 'sciences'];
             const shaba = (student.shaba || '').toLowerCase();
             const isScientific = scientificShabas.includes(shaba);
-            
             const groupLink = isScientific ? process.env.TELEGRAM_GROUP_LINK : process.env.TELEGRAM_LITERATURE_GROUP_LINK;
-            
-            res.json({ 
-                success: true, 
-                groupLink: groupLink, 
-                botLink: 'https://t.me/' + process.env.TELEGRAM_BOT_USERNAME + '?start=' + student.invoiceId 
-            });
+            res.json({ success: true, groupLink: groupLink, botLink: 'https://t.me/' + process.env.TELEGRAM_BOT_USERNAME + '?start=' + student.invoiceId });
         } else {
             res.json({ success: false });
         }
