@@ -334,12 +334,12 @@ bot.on('callback_query', async (query) => {
         const testId = parts[1]; // 1032, 1033, etc.
 
         await withDB(db => {
-            if (!db.activeTests) {
-                db.activeTests = { scientific: null, literature: null };
-            }
+            if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
             db.activeTests[group] = testId;
+            // Mutual Exclusivity: Clear writing
+            if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
+            db.activeWriting[group] = null;
         });
-
         await bot.editMessageText(
             `✅ Test *${testId}* is now active for the *${group}* group.`,
             {
@@ -352,6 +352,102 @@ bot.on('callback_query', async (query) => {
         pendingSetTest.delete(chatId);
     }
 });
+
+// ==========================================
+// ADMIN COMMAND: /setwritingexpression
+// ==========================================
+bot.onText(/^\/setwritingexpression$/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) return;
+
+    await bot.sendMessage(chatId, '✍️ *Set Writing Expression*\n\nChoose the group:', {
+        parse_mode: 'Markdown',
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    { text: '🔬 Scientific', callback_data: 'setwrit_group_scientific' },
+                    { text: '📖 Literature', callback_data: 'setwrit_group_literature' }
+                ],
+                [{ text: '❌ Cancel', callback_data: 'setwrit_cancel' }]
+            ]
+        }
+    });
+});
+
+// Handle the callback buttons for /setwritingexpression
+bot.on('callback_query', async (query) => {
+    const chatId = query.message.chat.id.toString();
+    const data = query.data;
+    if (!data || !data.startsWith('setwrit_')) return;
+
+    if (!isAuthorized(query.message.chat.id)) {
+        await bot.answerCallbackQuery(query.id, { text: 'Not authorized' });
+        return;
+    }
+
+    if (data === 'setwrit_cancel') {
+        await bot.editMessageText('❌ Cancelled.', { chat_id: chatId, message_id: query.message.message_id });
+        await bot.answerCallbackQuery(query.id);
+        return;
+    }
+
+    if (data === 'setwrit_group_scientific' || data === 'setwrit_group_literature') {
+        const group = data === 'setwrit_group_scientific' ? 'scientific' : 'literature';
+        
+        const topics = [
+            { id: 'WE1_LIT', title: 'Above the Law (Literature)' }
+            // Add more topics here as needed
+        ];
+
+        const buttons = topics.map(t => ([{
+            text: t.title,
+            callback_data: `setwrit_choose_${group}_${t.id}`
+        }]));
+        buttons.push([{ text: '🚫 Cancel Current Writing', callback_data: `setwrit_clear_${group}` }]);
+        buttons.push([{ text: '❌ Close', callback_data: 'setwrit_cancel' }]);
+
+        await bot.editMessageText(`✍️ *Set Writing Expression for ${group.toUpperCase()}*\n\nChoose a topic:`, {
+            chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: buttons }
+        });
+        await bot.answerCallbackQuery(query.id);
+        return;
+    }
+
+    if (data.startsWith('setwrit_clear_')) {
+        const group = data.replace('setwrit_clear_', '');
+        await withDB(db => {
+            if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
+            db.activeWriting[group] = null;
+        });
+        await bot.editMessageText(`✅ Active writing topic for *${group}* has been cancelled.`, {
+            chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown'
+        });
+        await bot.answerCallbackQuery(query.id, { text: 'Writing cancelled' });
+        return;
+    }
+
+    if (data.startsWith('setwrit_choose_')) {
+        const parts = data.replace('setwrit_choose_', '').split('_');
+        const group = parts[0];
+        const topicId = parts[1];
+
+        await withDB(db => {
+            if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
+            db.activeWriting[group] = topicId;
+            // Mutual Exclusivity: Clear reading test
+            if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
+            db.activeTests[group] = null;
+        });
+
+        await bot.editMessageText(`✅ Writing topic *${topicId}* is now active for the *${group}* group.`, {
+            chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown'
+        });
+        await bot.answerCallbackQuery(query.id, { text: 'Writing assigned!' });
+        return;
+    }
+});
+
 // ==========================================
 // STATUS, DELETE, EXPORT CALLBACKS
 // ==========================================
