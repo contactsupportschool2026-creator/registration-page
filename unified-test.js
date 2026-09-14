@@ -1,5 +1,5 @@
 /* =========================================================
-   UNIFIED TEST ENGINE - Auto-assigned test version
+   UNIFIED TEST ENGINE - Auto-assigned + Full Features
    ========================================================= */
 
 const ALL_TESTS = {
@@ -52,7 +52,15 @@ Adapted from https://smallbusiness.chron.com/ethics-`,
         title: "4. Choose the most appropriate title",
         options: ["a) Decision making in companies.","b) Productivity factors in business.","c) Ethics at the workplace."]
       }
-    ]
+    ],
+    answers: {
+      "1a":"human relationships","1b":"unethical practices","1c":"affects work quality",
+      order:{"2b":1,"2c":2,"2a":3},
+      "3a":["discrimination","fraud","theft","harassment"],
+      "3b":["productivity","communicate","easier"],
+      "3c":["yes","promotions","pay raise"],
+      "4":"c) Ethics at the workplace."
+    }
   },
 
   "1033": {
@@ -90,7 +98,14 @@ http://www.transparency.org/topic/detail/health`,
           {id:"3b",text:"b. How can governments fight funds disappearance?"},
           {id:"3c",text:"c. Is it possible for people to improve health services at the local level?"}
         ]}
-    ]
+    ],
+    answers: {
+      "1":"a: a web site.",
+      "2a":"True","2b":"True","2c":"False","2d":"False",
+      "3a":["unofficial fees","bribes","medication"],
+      "3b":["publish","budgets","financial information","truck funds","prevent"],
+      "3c":["yes","demand accountability","scrutinise","budgets"]
+    }
   },
 
   "1034": {
@@ -128,7 +143,15 @@ Adapted from Crane, A., & Matten, D. (2016). Business Ethics.`,
           {id:"3c",text:"c- What are some examples of unethical practices?"},
           {id:"3d",text:"d- Why is it important for businesses to act ethically?"}
         ]}
-    ]
+    ],
+    answers: {
+      "1":"a) an extract from a book",
+      "2a":"False","2b":"True","2c":"True","2d":"False",
+      "3a":["study","right","wrong","commerce","responsibly"],
+      "3b":["fair wages","safe working conditions","impact"],
+      "3c":["false advertising","bribery","cheap labor","unsafe conditions"],
+      "3d":["trust","long-term success","society","economy"]
+    }
   },
 
   "1035": {
@@ -157,7 +180,10 @@ Adapted from Britannica 2009`,
           {id:"1c",text:"c) The Indus valley cities and towns were well-protected."},
           {id:"1d",text:"d) The Indus people's culture was not very developed."}
         ]}
-    ]
+    ],
+    answers: {
+      "1a":"False","1b":"True","1c":"True","1d":"False"
+    }
   },
 
   "1036": {
@@ -182,7 +208,10 @@ Adapted from UNESCO's and Mosaic North Africa's websites`,
     },
     quizData: [
       {type:"mcq-single", title:"1. Identify the type of the text.", options:["a) narrative.","b) expository.","c) argumentative."]}
-    ]
+    ],
+    answers: {
+      "1":"b) expository."
+    }
   },
 
   "1037": {
@@ -208,7 +237,11 @@ We notice, too, that the civilizations of the past made slavery a practice that 
           {id:"1a",text:"a) What did ancient civilizations have in common?"},
           {id:"1b",text:"b) What was necessary for a civilization to become prosperous?"}
         ]}
-    ]
+    ],
+    answers: {
+      "1a":["features","in common","aspects"],
+      "1b":["powerful state","order","law"]
+    }
   },
 
   "1038": {
@@ -235,7 +268,11 @@ Adapted from: ‘ethicalsystems.org’`,
           {id:"1a",text:"1. What is ordinary unethical behaviour?"},
           {id:"1b",text:"2. Give examples mentioned in the text."}
         ]}
-    ]
+    ],
+    answers: {
+      "1a":["cheating","deception","unethical behaviour"],
+      "1b":["stealing","cheating on exams"]
+    }
   }
 };
 
@@ -264,6 +301,8 @@ const questionContent = document.getElementById("question-content");
 const progressMap = document.getElementById("progress-map");
 const navFooter = document.getElementById("nav-footer");
 const statusMessage = document.getElementById("status-message");
+const appContainer = document.querySelector('.app-container');
+const pdfBtn = document.getElementById("pdf-btn");
 
 // ========== INIT ==========
 function init() {
@@ -277,6 +316,7 @@ function init() {
   textBtn.addEventListener("click", openTextOverlay);
   nextBtn.addEventListener("click", nextQuestion);
   prevBtn.addEventListener("click", prevQuestion);
+  
   restartBtn.addEventListener("click", () => {
     resultScreen.classList.remove("active");
     quizScreen.classList.remove("active");
@@ -286,10 +326,13 @@ function init() {
     startBtn.disabled = true;
     statusMessage.style.display = "none";
   });
+  
   dictCloseBtn.addEventListener("click", () => dictOverlay.classList.remove("active"));
   dictOverlay.addEventListener("click", e => {
     if (e.target === dictOverlay) dictOverlay.classList.remove("active");
   });
+  
+  if(pdfBtn) pdfBtn.addEventListener("click", generatePDF);
 }
 
 async function startTest() {
@@ -301,7 +344,7 @@ async function startTest() {
   statusMessage.style.display = "none";
 
   try {
-    // Call the new backend endpoint
+    // Call the backend endpoint to get the assigned test
     const res = await fetch(`/api/get-assigned-test?username=${encodeURIComponent(studentUsername)}`);
     const data = await res.json();
 
@@ -442,6 +485,9 @@ function renderQuestion() {
   }
 
   questionContent.innerHTML = html;
+  questionContent.style.animation = 'none';
+  questionContent.offsetHeight;
+  questionContent.style.animation = 'slideIn 0.5s ease forwards';
   attachListeners();
   updateNav();
 }
@@ -511,12 +557,205 @@ function openDictionary(focusWord = null) {
   }
 }
 
+// Normalize text helper
+function normalizeText(text) {
+    if (!text) return "";
+    return text.toLowerCase()
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()@?\[\]]/g, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+}
+
+// Keyword matcher for Text Answers
+function containsKeywords(userText, keywords) {
+    const normalizedUser = normalizeText(userText);
+    let matches = 0;
+    for (const kw of keywords) {
+        if (normalizedUser.includes(normalizeText(kw))) {
+            matches++;
+        }
+    }
+    return matches >= Math.ceil(keywords.length / 2);
+}
+
+// --- GRADING LOGIC ---
+function calculateScore() {
+    let totalScore = 0;
+    let bubbles = [];
+    let breakdownHTML = '';
+    
+    currentTest.quizData.forEach((q, index) => {
+        let correctCount = 0;
+        let totalItems = 0;
+        
+        if (q.type === 'mcq-single') {
+            totalItems = 1;
+            const userAns = userAnswers["single" + index];
+            const correctAns = currentTest.answers[q.id];
+            if (userAns === correctAns) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
+        } else if (q.type === 'tf-group' || q.type === 'para-match' || q.type === 'mcq-group') {
+            if (q.questions) {
+                q.questions.forEach(item => {
+                    totalItems++;
+                    const userAns = userAnswers[item.id];
+                    const correctAns = currentTest.answers[item.id];
+                    if (userAns === correctAns) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
+                });
+            }
+        } else if (q.type === 'text-group') {
+            if (q.questions) {
+                q.questions.forEach(item => {
+                    totalItems++;
+                    const userAns = userAnswers[item.id] || "";
+                    const correctAns = currentTest.answers[item.id] || [];
+                    if (containsKeywords(userAns, correctAns)) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
+                });
+            }
+        } else if (q.type === 'ordering') {
+            if (q.items) {
+                q.items.forEach(item => {
+                    totalItems++;
+                    const userAns = userAnswers[item.id];
+                    const correctAns = currentTest.answers.order ? currentTest.answers.order[item.id] : null;
+                    if (parseInt(userAns) === correctAns) { totalScore++; correctCount++; bubbles.push(true); } else { bubbles.push(false); }
+                });
+            }
+        }
+        
+        breakdownHTML += `<div class="breakdown-row"><span class="breakdown-label">Q${q.id}: ${q.title.substring(0, 20)}...</span><span class="breakdown-score">${correctCount}/${totalItems}</span></div>`;
+    });
+
+    return { totalScore, bubbles, breakdownHTML };
+}
+
 function finishTest() {
-  quizScreen.classList.remove("active");
-  navFooter.style.display = "none";
-  resultScreen.classList.add("active");
-  document.getElementById("final-score").textContent = "Completed";
-  document.getElementById("result-message").textContent = "Thank you for finishing the test.";
+    quizScreen.classList.remove("active");
+    navFooter.style.display = "none"; // Hide footer on results
+    resultScreen.classList.add("active");
+    
+    const { totalScore, bubbles, breakdownHTML } = calculateScore();
+    
+    const percentageScore = bubbles.length > 0 ? ((totalScore / bubbles.length) * 100).toFixed(2) : "0.00";
+    document.getElementById("final-score").textContent = `${percentageScore}/100`;
+    document.getElementById("score-breakdown").innerHTML = breakdownHTML;
+
+    if(totalScore >= bubbles.length * 0.7) {
+        document.getElementById("result-message").textContent = 'Excellent work! You have a solid understanding of the text.';
+    } else if(totalScore >= bubbles.length * 0.5) {
+        document.getElementById("result-message").textContent = 'Good effort! Keep practicing your reading skills.';
+    } else {
+        document.getElementById("result-message").textContent = 'Needs improvement. Review the text and try again!';
+    }
+
+    setTimeout(() => {
+        createBubbles(bubbles);
+    }, 300);
+
+    sendToTelegram(percentageScore);
+}
+
+function createBubbles(bubblesArray) {
+    const bubbleContainer = document.createElement('div');
+    bubbleContainer.className = 'bubble-container';
+    
+    bubblesArray.forEach(isCorrect => {
+        const bubble = document.createElement('div');
+        bubble.className = `floating-bubble ${isCorrect ? 'correct' : 'wrong'}`;
+        bubble.style.marginLeft = `${Math.random() * 20 - 10}px`;
+        bubbleContainer.appendChild(bubble);
+    });
+
+    appContainer.appendChild(bubbleContainer);
+    setTimeout(() => { bubbleContainer.remove(); }, 2000);
+}
+
+async function sendToTelegram(percentageScore) {
+    const telegramStatus = document.getElementById("telegram-status");
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB');
+    const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    try {
+        const response = await fetch('/api/send-quiz-result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                quizName: currentTest.title,
+                username: studentUsername,
+                score: percentageScore,
+                date: dateStr,
+                time: timeStr
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            telegramStatus.textContent = '✅ Score sent to your teacher successfully!';
+            telegramStatus.style.color = 'green';
+        } else {
+            telegramStatus.textContent = '⚠️ Error sending score. Please inform your teacher.';
+            telegramStatus.style.color = 'red';
+        }
+    } catch (error) {
+        telegramStatus.textContent = '⚠️ Network error. Could not send score.';
+        telegramStatus.style.color = 'red';
+    }
+}
+
+// ==========================================
+// DYNAMIC PDF GENERATION
+// ==========================================
+function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(16);
+    doc.text(`Test Review: ${currentTest.title}`, 105, 20, null, null, 'center');
+    doc.setFontSize(12);
+    doc.text(`Student: ${studentUsername}`, 14, 30);
+    doc.text(`Score: ${document.getElementById('final-score').textContent} / 100`, 14, 40);
+    
+    let y = 50;
+    const lineH = 7;
+    
+    const addQ = (qText, studentAns, correctAns) => {
+        if(y > 270) { doc.addPage(); y = 20; }
+        doc.setFont(undefined, 'bold');
+        const qLines = doc.splitTextToSize(qText, 180);
+        doc.text(qLines, 14, y); y += (qLines.length * lineH);
+        
+        doc.setFont(undefined, 'normal');
+        const sLines = doc.splitTextToSize(`Your Answer: ${studentAns || 'N/A'}`, 180);
+        doc.text(sLines, 20, y); y += (sLines.length * lineH);
+        
+        doc.setTextColor(0, 100, 0); // Dark green for correct answer
+        const cLines = doc.splitTextToSize(`Correct Answer: ${correctAns}`, 180);
+        doc.text(cLines, 20, y); y += (cLines.length * lineH);
+        doc.setTextColor(0, 0, 0); // Reset color
+        y += 4;
+    };
+
+    currentTest.quizData.forEach((q, index) => {
+        if (q.type === 'mcq-single') {
+            addQ(`Q${q.id}: ${q.title}`, userAnswers["single" + index], currentTest.answers[q.id]);
+        } else {
+            if (q.questions) {
+                q.questions.forEach(item => {
+                    let correctAns = currentTest.answers[item.id];
+                    if (q.type === 'text-group' && Array.isArray(correctAns)) {
+                        correctAns = correctAns.join(', ');
+                    }
+                    addQ(`Q${item.id}: ${item.text}`, userAnswers[item.id], correctAns);
+                });
+            } else if (q.items) { // ordering
+                q.items.forEach(item => {
+                    const correctOrder = currentTest.answers.order ? currentTest.answers.order[item.id] : 'N/A';
+                    addQ(`Q${item.id}: ${item.text}`, userAnswers[item.id], `Order: ${correctOrder}`);
+                });
+            }
+        }
+    });
+
+    doc.save(`${currentTest.id}-Test-Review.pdf`);
 }
 
 init();
