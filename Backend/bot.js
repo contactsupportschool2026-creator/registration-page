@@ -11,50 +11,32 @@ const bot          = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: 
 
 bot.on('polling_error', (error) => {
     console.log('[bot] Telegram polling error (may be network):', error.code);
-    // Don't crash — just log it
 });
 const SUPPORT_TEXT = `\n\n_For any issues, contact support: @${process.env.TELEGRAM_SUPPORT_USERNAME}_`;
 
-// Ensure the database file exists before the bot starts handling messages
-// Ensure the database file exists before the bot starts handling messages
 try {
     initializeDB();
 } catch (err) {
     console.error('❌ Bot: Failed to initialize database:', err.message);
-    return;    // ✅ Just stop the bot, don't kill the server
+    return;    
 }
-// Whitelist of admin chat IDs (comma-separated in env var)
+
 function isAdmin(chatId) {
     const ids = (process.env.TELEGRAM_ADMIN_CHAT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
     if (ids.length === 0) {
-        // Fallback to the single TELEGRAM_CHAT_ID if the list isn't set
         return chatId.toString() === (process.env.TELEGRAM_CHAT_ID || '').trim();
     }
     return ids.includes(chatId.toString());
 }
-// ==========================================
-// SESSION GATE: Admin authentication store
-// ==========================================
-// All three sets are keyed by chatId.toString().
-// They reset on every bot process restart (in-memory only, by design).
-const verifiedSessions = new Set(); // chat IDs that passed the gate this session
-/** Returns true only if chatId has been verified this session. */
+
+const verifiedSessions = new Set();
 function isVerified(chatId) {
     return verifiedSessions.has(chatId.toString());
 }
-
-/**
- * Used by all admin command handlers.
- * Requires BOTH the correct chat ID AND an active session verification.
- * Returns silently on failure — the gate handler manages all user-facing messages.
- */
 function isAuthorized(chatId) {
     return isAdmin(chatId) && isVerified(chatId);
 }
 
-// ==========================================
-// HELPER: Safe sendMessage (logs but never throws)
-// ==========================================
 async function safeSend(chatId, text, options = {}) {
     try {
         await withRetry(
@@ -66,9 +48,6 @@ async function safeSend(chatId, text, options = {}) {
     }
 }
 
-// ==========================================
-// HELPER: Generate a new Chargily renewal link
-// ==========================================
 async function createRenewalLink(student) {
     const payload = {
         amount:      2000,
@@ -90,7 +69,6 @@ async function createRenewalLink(student) {
         { label: 'chargily:renewal-link' }
     );
 
-    // withDB acquires the cross-process lock before updating the student record
     await withDB(db => {
         const idx = db.findIndex(s => s.chatId && s.chatId.toString() === student.chatId.toString());
         if (idx !== -1) {
@@ -103,99 +81,56 @@ async function createRenewalLink(student) {
     return res.data.checkout_url;
 }
 
-// ==========================================
-// FEATURE 1: STUDENT REGISTERS THEIR TELEGRAM ID
-// ==========================================
-// ==========================================
-// GLOBAL MESSAGE GATE
-// Intercepts every incoming message before command handlers run.
-// Exempt: /start <token>  — used by students for account linking, no auth needed.
-// ==========================================
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id.toString();
     const text   = (msg.text || '').trim();
 
-    // ── Ignore ALL messages from groups (only handle private chats) ───────────
     if (msg.chat.type === 'group' || msg.chat.type === 'supergroup') return;
-
-    // ── Exempt: student onboarding link (/start <invoiceId>) ────────────────
     if (/^\/start\s+\S+/.test(text)) return;
-    // ── If user has an active score prompt ──
-    if (pendingScoreQueries.has(chatId)) {
-        return handleScoreQuery(chatId, text);
-    }
 
-    // ── If user has an active extend prompt ──
-    if (pendingExtendQueries.has(chatId)) {
-        return handleExtendQuery(chatId, text);
-    }
-
-    // ── If user has an active delete prompt ──
+    if (pendingScoreQueries.has(chatId)) return handleScoreQuery(chatId, text);
+    if (pendingExtendQueries.has(chatId)) return handleExtendQuery(chatId, text);
     if (pendingDeleteQueries.has(chatId)) {
         pendingDeleteQueries.delete(chatId);
         return handleDeleteQuery(chatId, text);
     }
-
-    // ── If user has an active status-change prompt, treat this message as their student query ──
     if (pendingStatusQueries.has(chatId)) {
         pendingStatusQueries.delete(chatId);
         return handleStatusQuery(chatId, text);
     }
-
-    // ── If user has an active search prompt, treat this message as their search query ──
     if (pendingSearches.has(chatId)) {
         pendingSearches.delete(chatId);
         return handleSearchQuery(chatId, text);
     }
-        // ── If user has an active export prompt ──
     if (pendingExportQueries.has(chatId)) {
         pendingExportQueries.delete(chatId);
         return handleExportQuery(chatId, text);
     }
 
-    // ── Already verified this session → let command handlers run ────────────
     if (isVerified(chatId)) return;
-
-    // ── Admin whitelist auto-verification (no manual chat ID typing) ──────────
     if (isAdmin(chatId)) {
         verifiedSessions.add(chatId);
-        return; // allow admins through without any prompt
+        return; 
     }
-
-    // ── Everyone else is silently ignored ────────────────────────────────────
-    // (Do not send any prompt — this keeps the bot silent to non-admins.)
 });
 
-// ==========================================
-// FEATURE: AUTO-LINK STUDENT ON GROUP JOIN
-// ==========================================
-// Silentely watches for new members joining the Telegram group.
 bot.on('new_chat_members', async (msg) => {
     const chatId = msg.chat.id.toString();
     const groupChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
 
-    // Only proceed if this is the designated group
     if (chatId !== groupChatId) return;
 
     for (const newMember of msg.new_chat_members) {
-        // Ignore bots joining
         if (newMember.is_bot) continue;
-
         const username = newMember.username ? `@${newMember.username}` : null;
-        if (!username) continue; // Can't match without a public username
+        if (!username) continue;
 
         try {
             let studentName = null;
-            let alreadyLinked = false;
-
             await withDB(db => {
-                // Find student by the username they typed in the form
-                const student = db.find(s => s.username && s.username.toLowerCase() === username.toLowerCase());
+                const student = db.students.find(s => s.username && s.username.toLowerCase() === username.toLowerCase());
                 if (student) {
-                    // If chatId is already saved, we don't need to do anything
-                    if (!student.chatId) {
-                        student.chatId = newMember.id.toString();
-                    }
+                    if (!student.chatId) student.chatId = newMember.id.toString();
                     studentName = student.fullName;
                 }
             });
@@ -204,31 +139,26 @@ bot.on('new_chat_members', async (msg) => {
                 console.log(`✅ Auto-linked ${username} (${studentName}) to the database via group join.`);
             } else {
                 console.log(`⚠️ User ${username} joined the group but is not in the database.`);
-                // Optional: Notify admin that an unknown user joined
-                // await safeSend(process.env.TELEGRAM_CHAT_ID, `⚠️ Unknown user ${username} joined the group.`);
             }
         } catch (err) {
             console.error('❌ [new_chat_members] Error:', err.message);
         }
     }
 });
-// ─────────────────────────────────────────────────────────────────────────────
-// STUDENT COMMAND: /start <invoiceId>  (exempt from the gate above)
-// ─────────────────────────────────────────────────────────────────────────────
+
 bot.onText(/\/start (.+)/, async (msg, match) => {
     const chatId    = msg.chat.id;
     const invoiceId = match[1];
 
     try {
         let studentName = null;
-
-    await withDB(db => {
-        const student = db.find(s => s.invoiceId === invoiceId);
-        if (student) {
-            student.chatId = chatId.toString(); // always store as string
-            studentName    = student.fullName; // Updated to fullName
-        }
-    });
+        await withDB(db => {
+            const student = db.students.find(s => s.invoiceId === invoiceId);
+            if (student) {
+                student.chatId = chatId.toString();
+                studentName    = student.fullName; 
+            }
+        });
 
         if (studentName) {
             await safeSend(chatId, `✅ Welcome ${studentName}! Your Telegram account is now linked to our system.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
@@ -237,81 +167,40 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
         }
     } catch (error) {
         console.error('❌ [/start] Error:', error.message);
-        await safeSend(chatId, `⚠️ A system error occurred while linking your account. Please try again or contact support.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
     }
 });
 
-// ==========================================
-// PENDING SEARCH STORE: users who typed /search and are awaiting their query
-// ==========================================
-const pendingSearches = new Set(); // chat IDs awaiting a search query
+const pendingSearches = new Set();
 
-// ==========================================
-// ADMIN COMMAND: /search - Find Students by name, invoice ID, or any field
-// ==========================================
-// Usage: Just type /search (no arguments).
-// The bot will ask for a name, invoice ID, or keyword, then search across all student fields.
 bot.onText(/^\/search$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
-
     pendingSearches.add(chatId.toString());
-    await safeSend(
-        chatId,
-        '🔍 *Search Students*\n\nType a name, invoice ID, or any keyword related to the student (wilaya, specialty, school name, etc.).\n\nI\'ll find all matching students.',
-        { parse_mode: 'Markdown' }
-    );
+    await safeSend(chatId, '🔍 *Search Students*\n\nType a name, invoice ID, or any keyword.', { parse_mode: 'Markdown' });
 });
 
-// ── Handle the search query (captured via the message gate below) ──
 async function handleSearchQuery(chatId, query) {
     try {
-        let db;
-        try {
-            db = await readDB();
-        } catch (readErr) {
-            console.error('❌ [/search] Failed to read DB:', readErr.message);
-            return safeSend(chatId, '⚠️ *Database read failed.* Please try again.', { parse_mode: 'Markdown' });
-        }
-
-        if (!Array.isArray(db) || db.length === 0) {
-            return safeSend(chatId, '📭 *No students in the database.*', { parse_mode: 'Markdown' });
-        }
+        const db = await readDB();
+        const students = db.students || [];
+        if (students.length === 0) return safeSend(chatId, '📭 *No students in the database.*', { parse_mode: 'Markdown' });
 
         const q = query.toLowerCase();
-        const results = db.filter(s => {
-            return (
-                (s.fullName && s.fullName.toLowerCase().includes(q)) ||
-                (s.username && s.username.toLowerCase().includes(q)) ||
-                (s.invoiceId && s.invoiceId.toLowerCase().includes(q)) ||
-                (s.wilaya && s.wilaya.toLowerCase().includes(q)) ||
-                (s.shaba && s.shaba.toLowerCase().includes(q)) ||
-                (s.schoolName && s.schoolName.toLowerCase().includes(q)) ||
-                (s.dob && s.dob.includes(q)) ||
-                (s.status && s.status.toLowerCase().includes(q)) ||
-                (s.chatId && s.chatId.toString().includes(q))
-            );
+        const results = students.filter(s => {
+            return (s.fullName && s.fullName.toLowerCase().includes(q)) ||
+                   (s.username && s.username.toLowerCase().includes(q)) ||
+                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q)) ||
+                   (s.wilaya && s.wilaya.toLowerCase().includes(q)) ||
+                   (s.shaba && s.shaba.toLowerCase().includes(q)) ||
+                   (s.schoolName && s.schoolName.toLowerCase().includes(q));
         });
 
-        if (results.length === 0) {
-            return safeSend(chatId, `🔍 No students found matching "*${query}*"`, { parse_mode: 'Markdown' });
-        }
+        if (results.length === 0) return safeSend(chatId, `🔍 No students found matching "*${query}*"`, { parse_mode: 'Markdown' });
+        if (results.length === 1) return safeSend(chatId, formatStudentCard(results[0]), { parse_mode: 'Markdown' });
 
-        if (results.length === 1) {
-            // Single match — show full card immediately
-            return safeSend(chatId, formatStudentCard(results[0]), { parse_mode: 'Markdown' });
-        }
-
-        // Multiple matches — show compact list, each with invoice ID for further lookup
-        let lines = [];
-        lines.push(`🔍 *${results.length} students found for "${query}":*
-`);
-        results.forEach((s, i) => {
-            lines.push(`*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}`);
-        });
-        lines.push('');
-
-        // Build safely by lines
+        let lines = [`🔍 *${results.length} students found for "${query}":*\n`];
+        results.forEach((s, i) => lines.push(`*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}`));
+        
         let chunk = '';
         for (const line of lines) {
             const maybe = chunk + line + '\n';
@@ -322,19 +211,16 @@ async function handleSearchQuery(chatId, query) {
                 chunk = maybe;
             }
         }
-        if (chunk.trim()) {
-            await safeSend(chatId, chunk, { parse_mode: 'Markdown' });
-        }
+        if (chunk.trim()) await safeSend(chatId, chunk, { parse_mode: 'Markdown' });
     } catch (error) {
         console.error('❌ [/search] Error:', error.message);
-        await safeSend(chatId, `⚠️ Failed to search students: ${error.message}`, { parse_mode: 'Markdown' });
     }
 }
 
 // ==========================================
 // ADMIN COMMAND: /settest
 // ==========================================
-const pendingSetTest = new Map(); // chatId -> { step: 'group' | 'test', group: 'scientific' | 'literature' }
+const pendingSetTest = new Map();
 
 bot.onText(/^\/settest$/, async (msg) => {
     const chatId = msg.chat.id;
@@ -350,9 +236,7 @@ bot.onText(/^\/settest$/, async (msg) => {
                     { text: '🔬 Scientific', callback_data: 'settest_group_scientific' },
                     { text: '📖 Literature', callback_data: 'settest_group_literature' }
                 ],
-                [
-                    { text: '❌ Cancel', callback_data: 'settest_cancel' }
-                ]
+                [{ text: '❌ Cancel', callback_data: 'settest_cancel' }]
             ]
         }
     });
@@ -363,30 +247,24 @@ bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id.toString();
     const data = query.data;
 
-    if (!data.startsWith('settest_')) return; // ignore other callbacks
+    if (!data || !data.startsWith('settest_')) return; // ignore other callbacks
 
     if (!isAuthorized(query.message.chat.id)) {
         await bot.answerCallbackQuery(query.id, { text: 'Not authorized' });
         return;
     }
 
-    // Cancel
     if (data === 'settest_cancel') {
         pendingSetTest.delete(chatId);
-        await bot.editMessageText('❌ Cancelled.', {
-            chat_id: chatId,
-            message_id: query.message.message_id
-        });
+        await bot.editMessageText('❌ Cancelled.', { chat_id: chatId, message_id: query.message.message_id });
         await bot.answerCallbackQuery(query.id);
         return;
     }
 
-    // Step 1: Group selected
     if (data === 'settest_group_scientific' || data === 'settest_group_literature') {
         const group = data === 'settest_group_scientific' ? 'scientific' : 'literature';
         pendingSetTest.set(chatId, { step: 'test', group });
 
-        // List of available tests
         const tests = [
             { id: '1032', title: 'Ethics in the Workplace' },
             { id: '1033', title: 'Corruption in the Health Sector' },
@@ -397,407 +275,281 @@ bot.on('callback_query', async (query) => {
             { id: '1038', title: 'Ordinary Unethical Behaviour' }
         ];
 
-        // FIXED: Proper string interpolation for callback_data
         const buttons = tests.map(t => ([{
             text: `${t.id} - ${t.title}`,
             callback_data: `settest_choose_${group}_${t.id}`
         }]));
 
-        // Add Cancel Current Test button
         buttons.push([{ text: '🚫 Cancel Current Test', callback_data: `settest_clear_${group}` }]);
         buttons.push([{ text: '❌ Close', callback_data: 'settest_cancel' }]);
 
-        await bot.editMessageText(
-            `📚 *Set Active Test for ${group.toUpperCase()}*\n\nChoose a test:`,
-            {
-                chat_id: chatId,
-                message_id: query.message.message_id,
-                parse_mode: 'Markdown',
-                reply_markup: { inline_keyboard: buttons }
-            }
-        );
+        await bot.editMessageText(`📚 *Set Active Test for ${group.toUpperCase()}*\n\nChoose a test:`, {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: buttons }
+        });
         await bot.answerCallbackQuery(query.id);
         return;
     }
 
-    // Step 2: Clear current test
     if (data.startsWith('settest_clear_')) {
         const group = data.replace('settest_clear_', '');
-
         await withDB(db => {
-            if (!db.activeTests) {
-                db.activeTests = { scientific: null, literature: null };
-            }
+            if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
             db.activeTests[group] = null;
         });
-        
         await bot.editMessageText(`✅ Active test for *${group}* has been cancelled.`, {
-            chat_id: chatId,
-            message_id: query.message.message_id,
-            parse_mode: 'Markdown'
+            chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown'
         });
         await bot.answerCallbackQuery(query.id, { text: 'Test cancelled' });
         pendingSetTest.delete(chatId);
         return;
     }
 
-    // Step 3: A specific test was chosen
     if (data.startsWith('settest_choose_')) {
-        // FIXED: Properly parse the callback data (e.g., 'settest_choose_scientific_1032')
         const parts = data.replace('settest_choose_', '').split('_');
-        const group = parts[0]; // scientific or literature
-        const testId = parts[1]; // 1032, 1033, etc.
+        const group = parts[0];
+        const testId = parts[1];
 
         await withDB(db => {
-            if (!db.activeTests) {
-                db.activeTests = { scientific: null, literature: null };
-            }
+            if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
             db.activeTests[group] = testId;
         });
 
-        // FIXED: Proper string interpolation for confirmation message
-        await bot.editMessageText(
-            `✅ Test *${testId}* is now active for the *${group}* group.`,
-            {
-                chat_id: chatId,
-                message_id: query.message.message_id,
-                parse_mode: 'Markdown'
-            }
-        );
+        await bot.editMessageText(`✅ Test *${testId}* is now active for the *${group}* group.`, {
+            chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown'
+        });
         await bot.answerCallbackQuery(query.id, { text: 'Test assigned!' });
         pendingSetTest.delete(chatId);
         return;
     }
 });
 
-        // IMPORTANT: Because the current database.json is a pure array,
-        // we need a small change in db handling.
-        // I will give you the clean solution next.
-
-        await bot.editMessageText(
-            `✅ Test *\( {testId}* is now active for the * \){group}* group.`,
-            {
-                chat_id: chatId,
-                message_id: query.message.message_id,
-                parse_mode: 'Markdown'
-            }
-        );
-        await bot.answerCallbackQuery(query.id, { text: 'Test assigned!' });
-        pendingSetTest.delete(chatId);
-    }
-});
-
-
 // ==========================================
+// STATUS, DELETE, EXPORT CALLBACKS
 // ==========================================
-// PENDING STATUS QUERY STORE: users who typed /updatestatus and need to pick a student
-// ==========================================
-const pendingStatusQueries     = new Set(); // chat IDs awaiting a student name for status change
+const pendingStatusQueries = new Set();
 
-
-// ADMIN COMMAND: /updatestatus - Change Student Status
-// ==========================================
-// Just type /updatestatus (no arguments). Bot asks for a name/ID, then shows status buttons.
 bot.onText(/^\/updatestatus$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
-
     pendingStatusQueries.add(chatId.toString());
-    await safeSend(
-        chatId,
-        '🔧 *Update Status*\n\nType the student\'s name or invoice ID to find them.',
-        { parse_mode: 'Markdown' }
-    );
+    await safeSend(chatId, '🔧 *Update Status*\n\nType the student\'s name or invoice ID.', { parse_mode: 'Markdown' });
 });
 
-// ── Handle the status query (intercepted by message gate) ──
 async function handleStatusQuery(chatId, query) {
     try {
-        let db;
-        try {
-            db = await readDB();
-        } catch (readErr) {
-            console.error('❌ [/updatestatus] DB read failed:', readErr.message);
-            return safeSend(chatId, '⚠️ *Database read failed.* Please try again.', { parse_mode: 'Markdown' });
-        }
+        const db = await readDB();
+        const students = db.students || [];
+        const q = query.toLowerCase();
+        const results = students.filter(s => (s.fullName && s.fullName.toLowerCase().includes(q)) || (s.invoiceId && s.invoiceId.toLowerCase().includes(q)));
 
-        if (!Array.isArray(db) || db.length === 0) {
-            return safeSend(chatId, '📭 *No students in the database.*', { parse_mode: 'Markdown' });
-        }
+        if (results.length === 0) return safeSend(chatId, `🔍 No students found matching "*${query}*"`, { parse_mode: 'Markdown' });
+        if (results.length === 1) return showStatusButtons(chatId, results[0]);
 
-        const q = text.toLowerCase();
-        const results = db.filter(s => {
-            const fullName = (s.fullName || '').toLowerCase();
-            return fullName.includes(q) ||
-                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
-                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
-        });
-
-        if (results.length === 0) {
-            return safeSend(chatId, `🔍 No students found matching "*${query}*"`, { parse_mode: 'Markdown' });
-        }
-
-        if (results.length === 1) {
-            // One match — show status buttons immediately
-            return showStatusButtons(chatId, results[0]);
-        }
-
-        // Multiple matches — show compact list, let them re-type a more specific query
         let msg = `🔍 *${results.length} students found for "${query}":*\n\n`;
-        results.forEach((s, i) => {
-            msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}\n`;
-        });
-        msg += `\nType a more specific name or invoice ID to narrow it down.`;
-
-        pendingStatusQueries.add(chatId.toString()); // keep them in query mode
+        results.forEach((s, i) => msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}\n`);
+        msg += `\nType a more specific name.`;
+        pendingStatusQueries.add(chatId.toString());
         await safeSend(chatId, msg, { parse_mode: 'Markdown' });
     } catch (error) {
         console.error('❌ [/updatestatus] Error:', error.message);
-        await safeSend(chatId, `⚠️ Failed: ${error.message}`, { parse_mode: 'Markdown' });
     }
 }
 
-// ── Show the status buttons for a given student ──
 async function showStatusButtons(chatId, student) {
     const buttons = {
         reply_markup: {
             inline_keyboard: [
-                [
-                    { text: '🟢 Paid',      callback_data: `setstatus|${student.invoiceId}|paid` },
-                    { text: '🟡 Pending',   callback_data: `setstatus|${student.invoiceId}|pending` },
-                ],
-                [
-                    { text: '🟠 Warned',    callback_data: `setstatus|${student.invoiceId}|warned` },
-                    { text: '🔴 Kicked',    callback_data: `setstatus|${student.invoiceId}|kicked` },
-                ],
+                [{ text: '🟢 Paid', callback_data: `setstatus|${student.invoiceId}|paid` }, { text: '🟡 Pending', callback_data: `setstatus|${student.invoiceId}|pending` }],
+                [{ text: '🟠 Warned', callback_data: `setstatus|${student.invoiceId}|warned` }, { text: '🔴 Kicked', callback_data: `setstatus|${student.invoiceId}|kicked` }]
             ]
         }
     };
-
-    await safeSend(
-        chatId,
-        `🔧 *Update Status*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Status:* ${student.status}\n\nSelect the new status:`,
-        { parse_mode: 'Markdown', ...buttons }
-    );
+    await safeSend(chatId, `🔧 *Update Status*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Status:* ${student.status}\n\nSelect new status:`, { parse_mode: 'Markdown', ...buttons });
 }
 
+const pendingDeleteQueries = new Set();
 
-
-// ==========================================
-// PENDING DELETE STORE: users who typed /delete and need to pick a student
-// ==========================================
-const pendingDeleteQueries = new Set(); // chat IDs awaiting a student name for deletion
-
-// ==========================================
-// ADMIN COMMAND: /delete - Remove Student Record
-// ==========================================
-// Step 1: /delete → bot asks for name
-// Step 2: Type name → bot finds student
-// Step 3: Bot shows confirmation buttons [Delete] [Cancel]
 bot.onText(/^\/delete$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
-
     pendingDeleteQueries.add(chatId.toString());
-    await safeSend(
-        chatId,
-        '🗑 *Delete Student*\n\nType the student\'s name or invoice ID to find them.',
-        { parse_mode: 'Markdown' }
-    );
+    await safeSend(chatId, '🗑 *Delete Student*\n\nType the student\'s name or invoice ID.', { parse_mode: 'Markdown' });
 });
 
-// ── Handle /delete query (intercepted by message gate) ──
 async function handleDeleteQuery(chatId, text) {
     try {
         const db = await readDB();
+        const students = db.students || [];
         const q = text.toLowerCase();
-        const results = db.filter(s => {
-            const fullName = (s.fullName || '').toLowerCase();
-            return fullName.includes(q) ||
-                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
-                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
-        });
+        const results = students.filter(s => (s.fullName && s.fullName.toLowerCase().includes(q)) || (s.invoiceId && s.invoiceId.toLowerCase().includes(q)));
 
         if (results.length === 0) {
             pendingDeleteQueries.add(chatId.toString());
             return safeSend(chatId, `🔍 No students found matching "*${text}*". Try again.`, { parse_mode: 'Markdown' });
         }
-
         if (results.length > 1) {
             let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
-            results.forEach((s, i) => {
-                msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}\n`;
-            });
+            results.forEach((s, i) => msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status}\n`);
             msg += `\nType a more specific name.`;
             pendingDeleteQueries.add(chatId.toString());
             return safeSend(chatId, msg, { parse_mode: 'Markdown' });
         }
 
-        // One match — show confirmation buttons
         const student = results[0];
         const buttons = {
             reply_markup: {
-                inline_keyboard: [
-                    [
-                        { text: '🗑 Yes, Delete', callback_data: `deleteconfirm|${student.invoiceId}` },
-                        { text: '❌ Cancel',     callback_data: 'deletecancel' },
-                    ],
-                ]
+                inline_keyboard: [[{ text: '🗑 Yes, Delete', callback_data: `deleteconfirm|${student.invoiceId}` }, { text: '❌ Cancel', callback_data: 'deletecancel' }]]
             }
         };
-
-        await safeSend(
-            chatId,
-            `⚠️ *Confirm Delete*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Status:* ${student.status}\n\nThis cannot be undone. Are you sure?`,
-            { parse_mode: 'Markdown', ...buttons }
-        );
+        await safeSend(chatId, `⚠️ *Confirm Delete*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Status:* ${student.status}\n\nThis cannot be undone. Are you sure?`, { parse_mode: 'Markdown', ...buttons });
     } catch (err) {
         console.error('❌ [/delete] Error:', err.message);
-        await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
     }
 }
 
-// ── Handle callback queries (delete, export, status) ──
+const pendingExportQueries = new Set();
+
+bot.onText(/^\/exportpdf$/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAuthorized(chatId)) return;
+    const db = await readDB();
+    const count = (db.students || []).length;
+    const buttons = {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: `📦 Export ALL (${count} students)`, callback_data: 'exportall' }],
+                [{ text: `📊 Score Table (all students)`, callback_data: 'scoretable' }],
+                [{ text: `🏆 Top Students (ranked)`, callback_data: 'leaderboard' }]
+            ]
+        }
+    };
+    await safeSend(chatId, `📄 *Export PDF*\n\nClick below to export the full database.\nDatabase has *${count}* student(s).`, { parse_mode: 'Markdown', ...buttons });
+});
+
+async function handleExportQuery(chatId, text) {
+    try {
+        const db = await readDB();
+        const students = db.students || [];
+        const q = text.toLowerCase();
+        const results = students.filter(s => (s.fullName && s.fullName.toLowerCase().includes(q)) || (s.invoiceId && s.invoiceId.toLowerCase().includes(q)));
+
+        if (results.length === 0) return safeSend(chatId, `🔍 No students found matching "*${text}*".`, { parse_mode: 'Markdown' });
+        if (results.length > 1) {
+            let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
+            results.forEach((s, i) => msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\`\n`);
+            return safeSend(chatId, msg, { parse_mode: 'Markdown' });
+        }
+
+        const student = results[0];
+        await safeSend(chatId, `⏳ Generating PDF for *${student.fullName}*…`, { parse_mode: 'Markdown' });
+        const { generateStudentPDF } = require('./pdf');
+        const pdfBuffer = await generateStudentPDF(student);
+        const filename = `${student.fullName.replace(/\s+/g, '_')}-${student.invoiceId}.pdf`;
+        await bot.sendDocument(chatId, pdfBuffer, { caption: `📄 ${student.fullName} — ${student.invoiceId}` }, { filename, contentType: 'application/pdf' });
+    } catch (err) {
+        console.error('❌ [/exportpdf one] Error:', err.message);
+    }
+}
+
+// ==========================================
+// MAIN CALLBACK HANDLER (Delete, Export, Status)
+// ==========================================
 bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id.toString();
-    const data   = query.data;
-
+    const data = query.data;
     if (!data) return;
 
-    // ── Handle export buttons ──
+    // Export All
     if (data === 'exportall') {
         try {
             await bot.answerCallbackQuery(query.id);
             const db = await readDB();
-            if (db.length === 0) {
-                await bot.editMessageText('📭 *No students in database.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
-                return;
-            }
-            await bot.editMessageText(`⏳ Generating PDF for *${db.length}* student(s)…`, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
-
-            const rawDb = await readDB(); // proper DB read through lock
+            const students = db.students || [];
+            if (students.length === 0) return await bot.editMessageText('📭 *No students in database.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
+            
+            await bot.editMessageText(`⏳ Generating PDF for *${students.length}* student(s)…`, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
             const { generateStudentsPDF } = require('./pdf');
-            const pdfBuffer = await generateStudentsPDF(rawDb);
+            const pdfBuffer = await generateStudentsPDF(students);
             const datePart = new Date().toISOString().split('T')[0];
-
-            await bot.sendDocument(chatId, pdfBuffer, { caption: `📄 All students — ${rawDb.length} student(s) — ${datePart}` }, { filename: `students-${datePart}.pdf`, contentType: 'application/pdf' });
+            await bot.sendDocument(chatId, pdfBuffer, { caption: `📄 All students — ${students.length} student(s) — ${datePart}` }, { filename: `students-${datePart}.pdf`, contentType: 'application/pdf' });
         } catch (err) {
             console.error('❌ [/exportpdf all] Error:', err.message);
-            try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
         }
         return;
     }
-    // ── Handle score table button ──
+
+    // Score Table
     if (data === 'scoretable') {
         try {
             await bot.answerCallbackQuery(query.id);
             const db = await readDB();
-            const ranked = buildLeaderboard(db);
+            const ranked = buildLeaderboard(db.students || []);
+            if (ranked.length === 0) return await bot.editMessageText('📭 *No students have scores yet.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
 
-            if (ranked.length === 0) {
-                await bot.editMessageText('📭 *No students have scores yet.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
-                return;
-            }
-
-            let text = '📊 *Score Table* (all students)\n\n';
-            text += '`#   Name                     Tests   Avg     Sum     Last`\n';
-            text += '`────────────────────────────────────────────────────────`\n';
+            let text = '📊 *Score Table* (all students)\n\n`#   Name                     Tests   Avg     Sum     Last`\n`────────────────────────────────────────────────────────`\n';
             ranked.forEach((entry, i) => {
-                const s = entry.student;
-                const m = entry.summary;
-                const name = pad(s.fullName || 'N/A', 24);
-                const count = pad(m.count, 6);
-                const avg = pad(m.avg + '/100', 7);
-                const sum = pad(m.sum, 6);
-                const last = m.lastDate ? `${m.lastDate} ${m.lastTime || ''}` : 'N/A';
-                text += `\`${pad(String(i + 1), 3)} ${name}${count}${avg}${sum}${last}\`\n`;
+                const s = entry.student, m = entry.summary;
+                text += `\`${pad(String(i + 1), 3)} ${pad(s.fullName || 'N/A', 24)}${pad(m.count, 6)}${pad(m.avg + '/100', 7)}${pad(m.sum, 6)}${m.lastDate ? m.lastDate + ' ' + (m.lastTime || '') : 'N/A'}\`\n`;
             });
-            text += '`────────────────────────────────────────────────────────`';
-
             await bot.editMessageText(text, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
         } catch (err) {
             console.error('❌ [/exportpdf scoretable] Error:', err.message);
-            try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
         }
         return;
     }
 
-    // ── Handle leaderboard button ──
+    // Leaderboard
     if (data === 'leaderboard') {
         try {
             await bot.answerCallbackQuery(query.id);
             const db = await readDB();
-            const ranked = buildLeaderboard(db);
-
-            if (ranked.length === 0) {
-                await bot.editMessageText('📭 *No students have scores yet.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
-                return;
-            }
+            const ranked = buildLeaderboard(db.students || []);
+            if (ranked.length === 0) return await bot.editMessageText('📭 *No students have scores yet.*', { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
 
             let text = '🏆 *Top Students* (ranked by total score)\n\n';
             ranked.forEach((entry, i) => {
-                const s = entry.student;
-                const m = entry.summary;
+                const s = entry.student, m = entry.summary;
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
                 text += `${medal} *${s.fullName}* — ${m.avg}/100 (${m.count} test${m.count === 1 ? '' : 's'})\n`;
-                if (m.lastDate) {
-                    text += `      _Last: ${m.lastDate}${m.lastTime ? ' ' + m.lastTime : ''}_\n`;
-                }
             });
-
             await bot.editMessageText(text, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
         } catch (err) {
             console.error('❌ [/exportpdf leaderboard] Error:', err.message);
-            try { await safeSend(chatId, `⚠️ Failed: ${err.message}`); } catch (_) {}
         }
         return;
     }
-    // Handle delete confirm
+
+    // Delete Confirm
     if (data.startsWith('deleteconfirm|')) {
         const invoiceId = data.split('|')[1];
-
         try {
             let deleted = null;
             await withDB(db => {
-                const idx = db.findIndex(s => s.invoiceId === invoiceId);
-                if (idx !== -1) {
-                    deleted = db.splice(idx, 1)[0];
-                }
+                const idx = db.students.findIndex(s => s.invoiceId === invoiceId);
+                if (idx !== -1) deleted = db.students.splice(idx, 1)[0];
             });
 
             if (!deleted) {
                 await bot.answerCallbackQuery(query.id, { text: '❌ Student not found.' });
-                await bot.editMessageText(
-                    `⚠️ *Delete Failed*\n\nStudent with invoice \`${invoiceId}\` was not found. They may have already been deleted.`,
-                    { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
-                );
-                return;
+                return await bot.editMessageText(`⚠️ *Delete Failed*\n\nStudent not found.`, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
             }
-
-            const name = `${deleted.fullName}`;
             await bot.answerCallbackQuery(query.id, { text: '✅ Student deleted.' });
-            await bot.editMessageText(
-                `✅ *Student Deleted*\n\n*Name:* ${name}\n*Invoice:* \`${invoiceId}\`\n*Status was:* ${deleted.status}`,
-                { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
-            );
+            await bot.editMessageText(`✅ *Student Deleted*\n\n*Name:* ${deleted.fullName}\n*Invoice:* \`${invoiceId}\``, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
         } catch (err) {
             console.error('❌ [/delete confirm] Error:', err.message);
-            try { await bot.answerCallbackQuery(query.id, { text: '⚠️ Failed.' }); } catch (_) {}
         }
         return;
     }
 
-    // Handle delete cancel
     if (data === 'deletecancel') {
         await bot.answerCallbackQuery(query.id, { text: '❌ Deletion cancelled.' });
-        await bot.editMessageText(
-            `❌ *Deletion Cancelled*\n\nNo changes were made.`,
-            { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
-        );
-        return;
+        return await bot.editMessageText(`❌ *Deletion Cancelled*`, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
     }
 
-    // ── Handle status button clicks ──
+    // Set Status
     if (data.startsWith('setstatus|')) {
         const parts = data.split('|');
         if (parts.length === 3) {
@@ -805,206 +557,79 @@ bot.on('callback_query', async (query) => {
             try {
                 let updated = null;
                 await withDB(db => {
-                    const student = db.find(s => s.invoiceId === invoiceId);
+                    const student = db.students.find(s => s.invoiceId === invoiceId);
                     if (student) {
-                        updated = { name: `${student.fullName}`, old: student.status };
+                        updated = { name: student.fullName, old: student.status };
                         student.status = newStatus;
-
-                        // If setting to paid, set/refresh the 30-day subscription period
                         if (newStatus === 'paid') {
                             const now = new Date();
-                            // Always reset start date to now when manually setting to paid
                             student.subscriptionStartDate = now.toISOString();
-                            const exp = new Date(now);
-                            exp.setDate(exp.getDate() + 30);
+                            const exp = new Date(now); exp.setDate(exp.getDate() + 30);
                             student.subscriptionEndDate = exp.toISOString();
-                            // Clear warning/kick flags
                             student.warnedTimestamp = null;
                             student.linkSentTimestamp = null;
                         }
                     }
                 });
 
-                if (!updated) {
-                    await bot.answerCallbackQuery(query.id, { text: '❌ Student not found.' });
-                    return;
-                }
+                if (!updated) return await bot.answerCallbackQuery(query.id, { text: '❌ Student not found.' });
                 let extra = '';
                 if (newStatus === 'paid') {
                     const db2 = await readDB();
-                    const s = db2.find(x => x.invoiceId === invoiceId);
-                    if (s && s.subscriptionEndDate) {
-                        extra = `\n*Expires:* ${s.subscriptionEndDate.split('T')[0]} (+30 days)`;
-                    }
+                    const s = db2.students.find(x => x.invoiceId === invoiceId);
+                    if (s && s.subscriptionEndDate) extra = `\n*Expires:* ${s.subscriptionEndDate.split('T')[0]} (+30 days)`;
                 }
-                await bot.editMessageText(
-                    `✅ *Status Updated*\n\n*Student:* ${updated.name}\n*Invoice:* \`${invoiceId}\`\n*From:* ${updated.old}\n*To:* ${newStatus}${extra}`,
-                { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' }
-                );
+                await bot.editMessageText(`✅ *Status Updated*\n\n*Student:* ${updated.name}\n*Invoice:* \`${invoiceId}\`\n*From:* ${updated.old}\n*To:* ${newStatus}${extra}`, { chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown' });
             } catch (err) {
                 console.error('❌ [/updatestatus callback] Error:', err.message);
-                try { await bot.answerCallbackQuery(query.id, { text: '⚠️ Failed.' }); } catch (_) {}
             }
         }
         return;
     }
 });
 
-// ── Handle export-one search (intercepted by message gate) ──
-async function handleExportQuery(chatId, text) {
-    try {
-        const db = await readDB();
-        const q = text.toLowerCase();
-        const results = db.filter(s => {
-            const fullName = (s.fullName || '').toLowerCase();
-            return fullName.includes(q) ||
-                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
-                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
-        });
-
-        if (results.length === 0) {
-            return safeSend(chatId, `🔍 No students found matching "*${text}*". Try again.`, { parse_mode: 'Markdown' });
-        }
-
-        if (results.length > 1) {
-            let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
-            results.forEach((s, i) => {
-                msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\`\n`;
-            });
-            msg += `\nType a more specific name.`;
-            return safeSend(chatId, msg, { parse_mode: 'Markdown' });
-        }
-
-        const student = results[0];
-        await safeSend(chatId, `⏳ Generating PDF for *${student.fullName}*…`, { parse_mode: 'Markdown' });
-
-        const { generateStudentPDF } = require('./pdf');
-        const pdfBuffer = await generateStudentPDF(student);
-        const filename = `${student.firstName || 'student'}-${student.lastName || 'export'}-${student.invoiceId}.pdf`.replace(/\s+/g, '_');
-
-        await bot.sendDocument(chatId, pdfBuffer, { caption: `📄 ${student.fullName} — ${student.invoiceId}` }, { filename, contentType: 'application/pdf' });
-    } catch (err) {
-        console.error('❌ [/exportpdf one] Error:', err.message);
-        await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
-    }
-    }
-// ==========================================
-// PENDING EXPORT STORE
-// ==========================================
-// ==========================================
-// PENDING EXPORT STORE
-// ==========================================
-const pendingExportQueries = new Set(); // chat IDs awaiting a student name for export
-
-// ==========================================
-// PENDING SCORE STORE: /setscore flow
-// ==========================================
-const pendingScoreQueries = new Map(); // chatId -> { step: 'find'|'score', student }
-
-const pendingExtendQueries = new Map(); // chatId -> { step: 'find'|'days', student }
-// chat IDs awaiting a student name for export
-
-// ADMIN COMMAND: /exportpdf — Export student(s) to PDF
-// ==========================================
-// /exportpdf → shows inline buttons: [Export ALL] [Score Table] [Top Students]
-bot.onText(/^\/exportpdf$/, async (msg) => {
-    const chatId = msg.chat.id;
-    if (!isAuthorized(chatId)) return;
-
-    const db = await readDB();
-    const count = db.length;
-
-    const buttons = {
-        reply_markup: {
-            inline_keyboard: [
-                [ { text: `📦 Export ALL (${count} students)`, callback_data: 'exportall' } ],
-                [ { text: `📊 Score Table (all students)`, callback_data: 'scoretable' } ],
-                [ { text: `🏆 Top Students (ranked)`, callback_data: 'leaderboard' } ],
-            ]
-        }
-    };
-
-    await safeSend(
-        chatId,
-        `📄 *Export PDF*
-
-Click below to export the full database as a table, view the score table, or see the ranked leaderboard.
-
-Database has *${count}* student(s).`,
-        { parse_mode: 'Markdown', ...buttons }
-    );
-});
-
 // ==========================================
 // SCORE CALCULATION HELPERS
 // ==========================================
-// Each student has `quizScores` (array of { name, score, date, time }), each out of 100,
-// plus an optional manual `score` override. Returns { count, sum, avg, lastDate, lastTime }.
 function computeScoreSummary(student) {
     const quizzes = (student.quizScores && Array.isArray(student.quizScores)) ? student.quizScores : [];
-    let sum = 0;
-    let latest = null;
-
+    let sum = 0, latest = null;
     for (const q of quizzes) {
         const qScore = (typeof q.score === 'number') ? q.score : (parseFloat(q.score) || 0);
         sum += qScore;
-
-        // Track most recent quiz by date (DD/MM/YYYY) + time
-        const d = (q.date || '').split('/').reverse().join('-'); // -> YYYY-MM-DD
+        const d = (q.date || '').split('/').reverse().join('-');
         const stamp = d + ' ' + (q.time || '');
-        if (stamp.trim().length > 1 && (!latest || stamp > latest.stamp)) {
-            latest = { date: q.date, time: q.time };
-        }
+        if (stamp.trim().length > 1 && (!latest || stamp > latest.stamp)) latest = { date: q.date, time: q.time };
     }
-
     const count = quizzes.length;
-    let avg = null;
-    if (count > 0) {
-        avg = sum / count;
-    } else if (typeof student.score === 'number') {
-        avg = student.score; // manual score only
-    }
-
-    return {
-        count,
-        sum: Math.round(sum * 100) / 100,
-        avg: avg != null ? Math.round(avg * 100) / 100 : null,
-        lastDate: latest ? latest.date : null,
-        lastTime: latest ? latest.time : null
-    };
+    let avg = count > 0 ? sum / count : (typeof student.score === 'number' ? student.score : null);
+    return { count, sum: Math.round(sum * 100) / 100, avg: avg != null ? Math.round(avg * 100) / 100 : null, lastDate: latest ? latest.date : null, lastTime: latest ? latest.time : null };
 }
 
-// Build a ranked list (highest average first) of students who have a score.
-function buildLeaderboard(db) {
-    return db
+function buildLeaderboard(students) {
+    return students
         .map(s => ({ student: s, summary: computeScoreSummary(s) }))
         .filter(x => x.summary.avg != null)
         .sort((a, b) => b.summary.avg - a.summary.avg);
 }
 
-// Pad a string to a fixed width for a monospace table.
 function pad(str, len) {
     str = String(str);
     return str.length >= len ? str.slice(0, len) : str + ' '.repeat(len - str.length);
 }
 
 // ==========================================
-// ADMIN COMMAND: /setscore - Set a student's score out of 100
+// ADMIN COMMAND: /setscore
 // ==========================================
-// /setscore → type the name → type the score
+const pendingScoreQueries = new Map();
+
 bot.onText(/^\/setscore$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
-
     pendingScoreQueries.set(chatId.toString(), { step: 'find', student: null });
-    await safeSend(
-        chatId,
-        '📊 *Set Score*\n\nType the student\'s name or invoice ID.',
-        { parse_mode: 'Markdown' }
-    );
+    await safeSend(chatId, '📊 *Set Score*\n\nType the student\'s name or invoice ID.', { parse_mode: 'Markdown' });
 });
 
-// ── Handle /setscore query flow ──
 async function handleScoreQuery(chatId, text) {
     const session = pendingScoreQueries.get(chatId.toString());
     if (!session) return;
@@ -1013,304 +638,181 @@ async function handleScoreQuery(chatId, text) {
         try {
             const db = await readDB();
             const q = text.toLowerCase();
-            const results = db.filter(s => {
-            const fullName = (s.fullName || '').toLowerCase();
-            return fullName.includes(q) ||
-                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
-                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
-        });
+            const results = (db.students || []).filter(s => (s.fullName && s.fullName.toLowerCase().includes(q)) || (s.invoiceId && s.invoiceId.toLowerCase().includes(q)));
 
             if (results.length === 0) {
                 pendingScoreQueries.set(chatId.toString(), { step: 'find', student: null });
                 return safeSend(chatId, `🔍 No students found matching "*${text}*". Try again.`, { parse_mode: 'Markdown' });
             }
-
             if (results.length > 1) {
                 let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
-                results.forEach((s, i) => {
-                    const sc = s.score != null ? `${s.score}/100` : 'N/A';
-                    msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — Score: ${sc}\n`;
-                });
-                msg += `\nType a more specific name.`;
+                results.forEach((s, i) => msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — Score: ${s.score != null ? s.score + '/100' : 'N/A'}\n`);
                 pendingScoreQueries.set(chatId.toString(), { step: 'find', student: null });
                 return safeSend(chatId, msg, { parse_mode: 'Markdown' });
             }
 
             const student = results[0];
-            const currentScore = student.score != null ? `${student.score}/100` : 'N/A';
             pendingScoreQueries.set(chatId.toString(), { step: 'score', student });
-
-            await safeSend(
-                chatId,
-                `📊 *Set Score*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Score:* ${currentScore}\n\nType the new score (0-100):`,
-                { parse_mode: 'Markdown' }
-            );
+            await safeSend(chatId, `📊 *Set Score*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Current Score:* ${student.score != null ? student.score + '/100' : 'N/A'}\n\nType the new score (0-100):`, { parse_mode: 'Markdown' });
         } catch (err) {
             console.error('❌ [/setscore] Error:', err.message);
-            await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
             pendingScoreQueries.delete(chatId.toString());
         }
     } else if (session.step === 'score') {
         const score = parseInt(text.trim());
-        if (isNaN(score) || score < 0 || score > 100) {
-            await safeSend(chatId, '❌ Invalid score. Type a number between 0 and 100.', { parse_mode: 'Markdown' });
-            return;
-        }
+        if (isNaN(score) || score < 0 || score > 100) return await safeSend(chatId, '❌ Invalid score. Type a number between 0 and 100.', { parse_mode: 'Markdown' });
 
         const student = session.student;
         try {
             let result = null;
             await withDB(db => {
-                const s = db.find(x => x.invoiceId === student.invoiceId);
+                const s = db.students.find(x => x.invoiceId === student.invoiceId);
                 if (s) {
                     s.score = score;
-                    result = {
-                        name: `${s.fullName}`,
-                        invoiceId: s.invoiceId,
-                        score: score,
-                    };
+                    result = { name: s.fullName, invoiceId: s.invoiceId, score: score };
                 }
             });
-
             pendingScoreQueries.delete(chatId.toString());
-
-            if (!result) {
-                return safeSend(chatId, '❌ *Student not found* — may have been deleted.', { parse_mode: 'Markdown' });
-            }
-
-            await safeSend(
-                chatId,
-                `✅ *Score Updated*\n\n*Student:* ${result.name}\n*Invoice:* \`${result.invoiceId}\`\n*New Score:* ${result.score}/100`,
-                { parse_mode: 'Markdown' }
-            );
+            if (!result) return await safeSend(chatId, '❌ *Student not found*.', { parse_mode: 'Markdown' });
+            await safeSend(chatId, `✅ *Score Updated*\n\n*Student:* ${result.name}\n*Invoice:* \`${result.invoiceId}\`\n*New Score:* ${result.score}/100`, { parse_mode: 'Markdown' });
         } catch (err) {
             console.error('❌ [/setscore] Error:', err.message);
-            await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
             pendingScoreQueries.delete(chatId.toString());
         }
     }
 }
 
 // ==========================================
-// ADMIN COMMAND: /addquiz - Record a quiz score from a replied message
+// ADMIN COMMAND: /addquiz
 // ==========================================
-// Usage: Reply directly to the forwarded quiz message with /addquiz
 bot.onText(/^\/addquiz$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
 
-    if (!msg.reply_to_message) {
-        return safeSend(chatId, '❌ *Usage:* Reply to the quiz result message and type `/addquiz`.', { parse_mode: 'Markdown' });
-    }
+    if (!msg.reply_to_message) return await safeSend(chatId, '❌ *Usage:* Reply to the quiz result message and type `/addquiz`.', { parse_mode: 'Markdown' });
 
     const originalText = msg.reply_to_message.text || '';
-    
-    // Match: Quiz: <Name> | Username: <@user> [ | Date: <dd/mm/yyyy> [ | Time: <HH:MM> ]] | Score: <num>
     const match = originalText.match(/Quiz:\s*(.+?)\s*\|\s*Username:\s*(@?\w+)\s*(?:\|\s*Date:\s*([\d\/]+))?\s*(?:\|\s*Time:\s*([\d:]+))?\s*\|\s*Score:\s*([\d.]+)/i);
     
-    if (!match) {
-        return safeSend(chatId, '❌ Could not parse the message. Ensure the format is:\n`Quiz: <Name> | Username: <@username> | Score: <Score>`', { parse_mode: 'Markdown' });
-    }
+    if (!match) return await safeSend(chatId, '❌ Could not parse the message. Format:\n`Quiz: <Name> | Username: <@username> | Score: <Score>`', { parse_mode: 'Markdown' });
 
     const quizName = match[1].trim();
     const rawUsername = match[2].trim();
     const usernameToFind = rawUsername.replace('@', '').toLowerCase();
-    const msgDate = match[3] || null;   // optional date from the message
-    const msgTime = match[4] || null;   // optional time from the message
+    const msgDate = match[3] || null;
+    const msgTime = match[4] || null;
     const quizScore = parseFloat(match[5]);
 
     try {
         const db = await readDB();
-        const student = db.find(s => s.username && s.username.replace('@', '').toLowerCase() === usernameToFind);
+        const student = (db.students || []).find(s => s.username && s.username.replace('@', '').toLowerCase() === usernameToFind);
 
-        if (!student) {
-            return safeSend(chatId, `❌ No student found with username *${rawUsername}*. Make sure they used /start to link their account.`, { parse_mode: 'Markdown' });
-        }
+        if (!student) return await safeSend(chatId, `❌ No student found with username *${rawUsername}*.`, { parse_mode: 'Markdown' });
 
         await withDB(db2 => {
-            const s = db2.find(x => x.invoiceId === student.invoiceId);
+            const s = db2.students.find(x => x.invoiceId === student.invoiceId);
             if (s) {
-                // Initialize quizScores array if it doesn't exist
-                if (!s.quizScores || typeof s.quizScores === 'object' && !Array.isArray(s.quizScores)) s.quizScores = [];
-                
-                // Use date/time from the quiz message if available, otherwise use current time
+                if (!Array.isArray(s.quizScores)) s.quizScores = [];
                 const now = new Date();
                 const dateStr = msgDate || now.toLocaleDateString('en-GB');
                 const timeStr = msgTime || now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
                 
                 const existingIdx = s.quizScores.findIndex(q => q.name === quizName);
-                if (existingIdx !== -1) {
-                    s.quizScores[existingIdx] = { name: quizName, score: quizScore, date: dateStr, time: timeStr };
-                } else {
-                    s.quizScores.push({ name: quizName, score: quizScore, date: dateStr, time: timeStr });
-                }
+                if (existingIdx !== -1) s.quizScores[existingIdx] = { name: quizName, score: quizScore, date: dateStr, time: timeStr };
+                else s.quizScores.push({ name: quizName, score: quizScore, date: dateStr, time: timeStr });
                 
-                // Calculate average score out of 100
                 const sum = s.quizScores.reduce((acc, q) => acc + q.score, 0);
                 s.score = parseFloat((sum / s.quizScores.length).toFixed(2));
             }
         });
-        await safeSend(
-            chatId,
-            `✅ *Quiz Score Recorded*\n\n*Student:* ${student.fullName}\n*Quiz:* ${quizName}\n*Score:* ${quizScore}\n\n📊 *Updated Total Score:* ${student.score}/100`,
-            { parse_mode: 'Markdown' }
-        );
+        await safeSend(chatId, `✅ *Quiz Score Recorded*\n\n*Student:* ${student.fullName}\n*Quiz:* ${quizName}\n*Score:* ${quizScore}\n\n📊 *Updated Total Score:* ${student.score}/100`, { parse_mode: 'Markdown' });
     } catch (err) {
         console.error('❌ [/addquiz] Error:', err.message);
-        await safeSend(chatId, '⚠️ Failed to record quiz score: ' + err.message, { parse_mode: 'Markdown' });
     }
 });
 
 // ==========================================
-// ADMIN COMMAND 6: /help - Show Available Commands
+// ADMIN COMMAND: /help
 // ==========================================
 bot.onText(/\/help/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
-
-    const helpMessage = `
-🤖 *Admin Commands*
-
-*📋 View & Export*
-\`/getall\` — List all students with status
-\`/search\` — Search by name, invoice ID, wilaya, specialty, school, or status
-\`\`/exportpdf\` — Export all students to PDF (table format)
-
-*✏️ Manage Students*
-\`/updatestatus\` — Change a student's status (paid/pending/warned/kicked)
-\`/delete\` — Delete a student (with confirmation)
-\`/addquiz\` — Record a quiz score (reply to the bot's forwarded message)
-\`/setscore\` — Set a student's score (0-100)
-\`/sendlink <invoiceId>\` — Send a payment renewal link to a student
-\`/extend\` — Add days to a student's subscription
-
-📌 *How to use the new prompt-based commands:*
-\`/search\` → type the student's name or invoice ID
-\`/updatestatus\` → type the name → click the new status button
-\`/delete\` → type the name → click *Delete* or *Cancel*
-\`\`/exportpdf\` → click *Export ALL* to download the table
-
-📌 *Classic commands:*
-\`/sendlink inv_12345\`
-\`/extend\` → type the name → type number of days
-\`/setscore\` → type the name → type score (0-100)
-`;
-
+    const helpMessage = `🤖 *Admin Commands*\n\n*📋 View & Export*\n\`/search\` — Search students\n\`/exportpdf\` — Export to PDF\n\n*✏️ Manage Students*\n\`/updatestatus\` — Change status\n\`/delete\` — Delete student\n\`/addquiz\` — Record quiz score (reply to msg)\n\`/setscore\` — Set score (0-100)\n\`/settest\` — Set active test for Scientific/Literature\n\`/sendlink <id>\` — Send renewal link\n\`/extend\` — Add days to subscription`;
     await safeSend(chatId, helpMessage, { parse_mode: 'Markdown' });
 });
 
 // ==========================================
-// ADMIN COMMAND: /sendlink - Manually send a payment link to a student
+// ADMIN COMMAND: /sendlink
 // ==========================================
 bot.onText(/\/sendlink (.+)/, async (msg, match) => {
     const adminChatId = msg.chat.id;
     if (!isAuthorized(adminChatId)) return;
-
     try {
         const invoiceId = match[1].trim();
-        const db        = await readDB();
-        const student   = db.find(s => s.invoiceId === invoiceId);
+        const db = await readDB();
+        const student = (db.students || []).find(s => s.invoiceId === invoiceId);
 
-        if (!student) {
-            return safeSend(adminChatId, `❌ *Student not found* with invoice ID: \`${invoiceId}\``, { parse_mode: 'Markdown' });
-        }
-
-        if (!student.chatId) {
-            return safeSend(adminChatId, `⚠️ *${student.fullName}* has not linked their Telegram account yet — cannot send the link.`, { parse_mode: 'Markdown' });
-        }
+        if (!student) return await safeSend(adminChatId, `❌ *Student not found* with invoice ID: \`${invoiceId}\``, { parse_mode: 'Markdown' });
+        if (!student.chatId) return await safeSend(adminChatId, `⚠️ *${student.fullName}* has not linked their Telegram account.`, { parse_mode: 'Markdown' });
 
         await safeSend(adminChatId, `⏳ Generating payment link for *${student.fullName}*…`, { parse_mode: 'Markdown' });
-
         const checkoutUrl = await createRenewalLink(student);
-        await safeSend(student.chatId, `💰 *Payment Link*\n\nHere is your payment link to renew your subscription:\n\n${checkoutUrl}${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
+        await safeSend(student.chatId, `💰 *Payment Link*\n\nHere is your payment link to renew:\n\n${checkoutUrl}${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
         await safeSend(adminChatId, `✅ Payment link sent to *${student.fullName}*.`, { parse_mode: 'Markdown' });
-
     } catch (error) {
         console.error('❌ [/sendlink] Error:', error.message);
-        await safeSend(adminChatId, `⚠️ Failed to send payment link: ${error.message}`);
     }
 });
 
 // ==========================================
-// ADMIN COMMAND: /extend - Add days to a student's subscription
+// ADMIN COMMAND: /extend
 // ==========================================
-// Step 1: /extend → bot asks for name
-// Step 2: Type name → bot finds student → shows current info
-// Step 3: Bot asks "How many days?" → you type the number
-// Step 4: Bot updates DB → sends YOU the notification text to forward
+const pendingExtendQueries = new Map();
+
 bot.onText(/^\/extend$/, async (msg) => {
     const chatId = msg.chat.id;
     if (!isAuthorized(chatId)) return;
-
     pendingExtendQueries.set(chatId.toString(), { step: 'find', student: null });
-    await safeSend(
-        chatId,
-        '📅 *Extend Subscription*\n\nType the student\'s name or invoice ID.',
-        { parse_mode: 'Markdown' }
-    );
+    await safeSend(chatId, '📅 *Extend Subscription*\n\nType the student\'s name or invoice ID.', { parse_mode: 'Markdown' });
 });
 
-// ── Handle /extend query flow (intercepted by message gate) ──
 async function handleExtendQuery(chatId, text) {
     const session = pendingExtendQueries.get(chatId.toString());
     if (!session) return;
 
     if (session.step === 'find') {
-        // Searching for the student
         try {
             const db = await readDB();
             const q = text.toLowerCase();
-            const results = db.filter(s => {
-            const fullName = (s.fullName || '').toLowerCase();
-            return fullName.includes(q) ||
-                   (s.fullName && s.fullName.toLowerCase().includes(q)) ||
-                   (s.invoiceId && s.invoiceId.toLowerCase().includes(q));
-            });
+            const results = (db.students || []).filter(s => (s.fullName && s.fullName.toLowerCase().includes(q)) || (s.invoiceId && s.invoiceId.toLowerCase().includes(q)));
             
             if (results.length === 0) {
                 pendingExtendQueries.set(chatId.toString(), { step: 'find', student: null });
                 return safeSend(chatId, `🔍 No students found matching "*${text}*". Try again.`, { parse_mode: 'Markdown' });
             }
-
             if (results.length > 1) {
                 let msg = `🔍 *${results.length} students found for "${text}":*\n\n`;
-                results.forEach((s, i) => {
-                    const endDate = s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : 'N/A';
-                    msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status} — Ends: ${endDate}\n`;
-                });
-                msg += `\nType a more specific name.`;
+                results.forEach((s, i) => msg += `*${i + 1}.* ${s.fullName} — \`${s.invoiceId}\` — ${s.status} — Ends: ${s.subscriptionEndDate ? s.subscriptionEndDate.split('T')[0] : 'N/A'}\n`);
                 pendingExtendQueries.set(chatId.toString(), { step: 'find', student: null });
                 return safeSend(chatId, msg, { parse_mode: 'Markdown' });
             }
 
-            // One match — show current info and ask for days
             const student = results[0];
-            const endDate = student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : 'N/A';
             pendingExtendQueries.set(chatId.toString(), { step: 'days', student });
-
-            await safeSend(
-                chatId,
-                `📅 *Extend Subscription*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Status:* ${student.status}\n*Current End Date:* ${endDate}\n\nHow many days to add? (e.g. 7)`,
-                { parse_mode: 'Markdown' }
-            );
+            await safeSend(chatId, `📅 *Extend Subscription*\n\n*Student:* ${student.fullName}\n*Invoice:* \`${student.invoiceId}\`\n*Current End Date:* ${student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : 'N/A'}\n\nHow many days to add? (e.g. 7)`, { parse_mode: 'Markdown' });
         } catch (err) {
             console.error('❌ [/extend] Error:', err.message);
-            await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
             pendingExtendQueries.delete(chatId.toString());
         }
     } else if (session.step === 'days') {
-        // Received the number of days
         const days = parseInt(text.trim());
-        if (isNaN(days) || days <= 0) {
-            await safeSend(chatId, `❌ Invalid number. Type a positive number (e.g. 7)`, { parse_mode: 'Markdown' });
-            return;
-        }
+        if (isNaN(days) || days <= 0) return await safeSend(chatId, `❌ Invalid number. Type a positive number (e.g. 7)`, { parse_mode: 'Markdown' });
 
         const student = session.student;
         try {
             let result = null;
             await withDB(db => {
-                const s = db.find(x => x.invoiceId === student.invoiceId);
+                const s = db.students.find(x => x.invoiceId === student.invoiceId);
                 if (s) {
                     const currentEnd = s.subscriptionEndDate ? new Date(s.subscriptionEndDate) : new Date();
                     const newEnd = new Date(currentEnd);
@@ -1319,218 +821,115 @@ async function handleExtendQuery(chatId, text) {
                     s.status = 'paid';
                     s.warnedTimestamp = null;
                     s.linkSentTimestamp = null;
-                    result = {
-                        name: `${s.fullName}`,
-                        invoiceId: s.invoiceId,
-                        oldEnd: currentEnd.toISOString().split('T')[0],
-                        newEnd: newEnd.toISOString().split('T')[0],
-                        days: days,
-                    };
+                    result = { name: s.fullName, invoiceId: s.invoiceId, oldEnd: currentEnd.toISOString().split('T')[0], newEnd: newEnd.toISOString().split('T')[0], days: days };
                 }
             });
 
             pendingExtendQueries.delete(chatId.toString());
-
-            if (!result) {
-                return safeSend(chatId, `❌ *Student not found* — may have been deleted.`, { parse_mode: 'Markdown' });
-            }
-
-            // Send the notification to YOU (admin) to forward
-            await safeSend(
-                chatId,
-                `✅ *Subscription Extended*\n\n*Student:* ${result.name}\n*Invoice:* \`${result.invoiceId}\`\n*Added:* ${result.days} day(s)\n*Old End Date:* ${result.oldEnd}\n*New End Date:* ${result.newEnd}\n\n📋 *Copy this to forward to the student:*\n\n📅 *Subscription Updated!*\n\nYour renewal date has been adjusted by the admin. Your new due date is: *${result.newEnd}*.\n\nIf you have any questions, contact the admin.`,
-                { parse_mode: 'Markdown' }
-            );
+            if (!result) return await safeSend(chatId, `❌ *Student not found*.`, { parse_mode: 'Markdown' });
+            await safeSend(chatId, `✅ *Subscription Extended*\n\n*Student:* ${result.name}\n*Invoice:* \`${result.invoiceId}\`\n*Added:* ${result.days} day(s)\n*Old End Date:* ${result.oldEnd}\n*New End Date:* ${result.newEnd}\n\n📋 *Copy this to forward to the student:*\n\n📅 *Subscription Updated!*\n\nYour renewal date has been adjusted. Your new due date is: *${result.newEnd}*.`, { parse_mode: 'Markdown' });
         } catch (err) {
             console.error('❌ [/extend] Error:', err.message);
-            await safeSend(chatId, '⚠️ Failed: ' + err.message, { parse_mode: 'Markdown' });
             pendingExtendQueries.delete(chatId.toString());
         }
     }
 }
 
 // ==========================================
-// HELPER: Format a student record as a Telegram card
+// HELPER: Format Student Card
 // ==========================================
 function formatStudentCard(student) {
     const nizamiText = student.isNizami ? 'نظامي' : 'حر';
     const scoreText = student.score != null ? `${student.score}/100` : 'N/A';
-    
-    // Build quiz history
     let quizText = 'N/A';
     if (student.quizScores && student.quizScores.length > 0) {
-        const lines = student.quizScores.map(q => 
-            `  • *${q.name}*: ${q.score}/100 (${q.date} ${q.time})`
-        );
-        quizText = '\n' + lines.join('\n');
+        quizText = '\n' + student.quizScores.map(q => `  • *${q.name}*: ${q.score}/100 (${q.date} ${q.time})`).join('\n');
     }
-    
-    return `
-👤 *Student Details*
-
-*Name:* ${student.fullName}
-*Telegram:* ${student.username || 'N/A'}
-*Invoice:* \`${student.invoiceId}\`
-*Date of Birth:* ${student.dob}
-*Wilaya:* ${student.wilaya}
-*Specialty:* ${student.shaba}
-*School Type:* ${nizamiText}
-*School Name:* ${student.schoolName}
-
-📊 *Average Score:* ${scoreText}
-📝 *Quiz History:* ${quizText}
-
-💳 *Payment Info*
-*Status:* ${student.status}
-*Renewals:* ${student.renewalCount || 0} month(s) paid
-*Start Date:* ${student.subscriptionStartDate ? student.subscriptionStartDate.split('T')[0] : 'N/A'}
-*Expires:* ${student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : 'N/A'}
-
-📱 *Telegram*
-*Chat ID:* ${student.chatId || 'Not linked'}
-`;
+    return `👤 *Student Details*\n\n*Name:* ${student.fullName}\n*Telegram:* ${student.username || 'N/A'}\n*Invoice:* \`${student.invoiceId}\`\n*Date of Birth:* ${student.dob}\n*Wilaya:* ${student.wilaya}\n*Specialty:* ${student.shaba}\n*School Type:* ${nizamiText}\n*School Name:* ${student.schoolName}\n\n📊 *Average Score:* ${scoreText}\n📝 *Quiz History:* ${quizText}\n\n💳 *Payment Info*\n*Status:* ${student.status}\n*Renewals:* ${student.renewalCount || 0}\n*Expires:* ${student.subscriptionEndDate ? student.subscriptionEndDate.split('T')[0] : 'N/A'}\n\n📱 *Telegram*\n*Chat ID:* ${student.chatId || 'Not linked'}`;
 }
+
 // ==========================================
-// FEATURE 3: DAILY 8:00 AM CRON JOB (Reminders & Due Links)
+// FEATURE 3: DAILY 8:00 AM CRON JOB
 // ==========================================
 cronJobs.push(cron.schedule('0 8 * * *', async () => {
-    console.log('Running 8:00 AM subscription check...');
-
     let db;
-    try {
-        db = await readDB();
-    } catch (error) {
-        console.error('❌ [cron:daily] Cannot read database, skipping run:', error.message);
-        return;
-    }
-
+    try { db = await readDB(); } catch (e) { return console.error('❌ [cron:daily] DB read failed:', e.message); }
     const now = new Date();
+    const expiringSoon = [];
 
-    // Collect expiring students to send the admin a single summary
-    const expiringSoon = []; // paid students expiring in 1–6 days
-
-    for (const student of db) {
-        if (!student.subscriptionEndDate || !student.chatId) continue;
-        if (student.status === 'kicked') continue;
-
+    for (const student of (db.students || [])) {
+        if (!student.subscriptionEndDate || !student.chatId || student.status === 'kicked') continue;
         try {
-            const endDate  = new Date(student.subscriptionEndDate);
-            const diffTime = endDate - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const endDate = new Date(student.subscriptionEndDate);
+            const diffDays = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
 
             if (diffDays <= 6 && diffDays >= 1 && student.status === 'paid') {
-                // Remind the student
-                await safeSend(student.chatId, `⏳ *Reminder!*\n\nYour subscription expires in ${diffDays} day(s). Please prepare for the next payment.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
-                // Collect for admin summary
+                await safeSend(student.chatId, `⏳ *Reminder!*\n\nYour subscription expires in ${diffDays} day(s).${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
                 expiringSoon.push({ student, diffDays });
             }
-
             if (diffDays <= 0 && student.status === 'paid') {
                 try {
                     const checkoutUrl = await createRenewalLink(student);
-                    await safeSend(student.chatId, `💰 *Payment Due Today!*\n\nYour monthly subscription has ended. Please renew your access:\n\n${checkoutUrl}${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
-                } catch (err) {
-                    console.error(`❌ [cron:daily] Failed to create renewal link for ${student.firstName}:`, err.message);
-                }
+                    await safeSend(student.chatId, `💰 *Payment Due Today!*\n\nYour subscription has ended. Please renew:\n\n${checkoutUrl}${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
+                } catch (err) { console.error(`❌ [cron:daily] Link failed for ${student.fullName}:`, err.message); }
             }
-        } catch (error) {
-            console.error(`❌ [cron:daily] Error processing ${student.fullName}:`, error.message);
-        }
+        } catch (e) { console.error(`❌ [cron:daily] Error ${student.fullName}:`, e.message); }
     }
 
-    // Send admin a daily summary of expiring subscriptions
     if (expiringSoon.length > 0) {
         let adminMsg = `📅 *Daily Expiry Alert — ${expiringSoon.length} student(s) expiring soon:*\n\n`;
         expiringSoon.forEach(({ student: s, diffDays }) => {
-            adminMsg += `• *${s.fullName}* — ${diffDays} day(s) left\n`;
-            adminMsg += `  Invoice: \`${s.invoiceId}\`\n`;
-            adminMsg += `  ➡️ Use /sendlink ${s.invoiceId} to send them a payment link\n\n`;
+            adminMsg += `• *${s.fullName}* — ${diffDays} day(s) left\n  Invoice: \`${s.invoiceId}\`\n  ➡️ Use /sendlink ${s.invoiceId}\n\n`;
         });
         await safeSend(process.env.TELEGRAM_CHAT_ID, adminMsg, { parse_mode: 'Markdown' });
     }
 }, { timezone: 'Africa/Algiers' }));
 
 // ==========================================
-// FEATURE 4: NON-PAYMENT ENFORCEMENT (Runs every hour)
+// FEATURE 4: HOURLY CRON JOB
 // ==========================================
 cronJobs.push(cron.schedule('0 * * * *', async () => {
-    console.log('Running hourly check for warnings and kicks...');
-
     let db;
-    try {
-        db = await readDB();
-    } catch (error) {
-        console.error('❌ [cron:hourly] Cannot read database, skipping run:', error.message);
-        return;
-    }
-
+    try { db = await readDB(); } catch (e) { return console.error('❌ [cron:hourly] DB read failed:', e.message); }
     const now = new Date();
 
-    for (const student of db) {
+    for (const student of (db.students || [])) {
         if (!student.chatId) continue;
-
         try {
             if (student.status === 'pending' && student.linkSentTimestamp) {
-                const hoursPassedLink = (now - new Date(student.linkSentTimestamp)) / (1000 * 60 * 60);
-
-                if (hoursPassedLink >= 20 && !student.warnedTimestamp) {
+                if ((now - new Date(student.linkSentTimestamp)) / (1000 * 60 * 60) >= 20 && !student.warnedTimestamp) {
                     await withDB(db2 => {
-                        const s = db2.find(x => x.invoiceId === student.invoiceId);
+                        const s = db2.students.find(x => x.invoiceId === student.invoiceId);
                         if (s && s.status === 'pending' && !s.warnedTimestamp) {
-                            s.status          = 'warned';
-                            s.warnedTimestamp = now.toISOString();
+                            s.status = 'warned'; s.warnedTimestamp = now.toISOString();
                         }
                     });
-                    await safeSend(student.chatId, `🚨 *FINAL WARNING!*\n\nYour payment is severely overdue. You have exactly 4 hours to complete your payment before you are automatically removed from the group.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
+                    await safeSend(student.chatId, `🚨 *FINAL WARNING!*\n\nYour payment is severely overdue. You have 4 hours before removal.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
                 }
             }
-
             if (student.status === 'warned' && student.warnedTimestamp) {
-                const hoursPassedWarning = (now - new Date(student.warnedTimestamp)) / (1000 * 60 * 60);
-
-                if (hoursPassedWarning >= 4) {
+                if ((now - new Date(student.warnedTimestamp)) / (1000 * 60 * 60) >= 4) {
                     try {
                         await bot.banChatMember(process.env.TELEGRAM_GROUP_CHAT_ID, student.chatId);
-                        await safeSend(student.chatId, `❌ *Access Removed*\n\nYou did not complete the payment within the allotted time. You have been removed from the group. Contact support if this is a mistake.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
+                        await safeSend(student.chatId, `❌ *Access Removed*\n\nYou were removed for non-payment.${SUPPORT_TEXT}`, { parse_mode: 'Markdown' });
                         await withDB(db2 => {
-                            const s = db2.find(x => x.invoiceId === student.invoiceId);
+                            const s = db2.students.find(x => x.invoiceId === student.invoiceId);
                             if (s) s.status = 'kicked';
                         });
-                    } catch (err) {
-                        console.error(`❌ [cron:hourly] Failed to kick ${student.chatId}. Is the bot an admin? Error:`, err.message);
-                    }
+                    } catch (err) { console.error(`❌ [cron:hourly] Kick failed ${student.chatId}:`, err.message); }
                 }
             }
-        } catch (error) {
-            console.error(`❌ [cron:hourly] Error processing ${student.fullName}:`, error.message);
-        }
+        } catch (e) { console.error(`❌ [cron:hourly] Error ${student.fullName}:`, e.message); }
     }
 }, { timezone: 'Africa/Algiers' }));
 
 console.log('🤖 Telegram Bot is running...');
-
-// Notify admin(s) that the bot process has (re)started.
 (async () => {
     try {
-        const adminIds = (process.env.TELEGRAM_ADMIN_CHAT_IDS || process.env.TELEGRAM_CHAT_ID || '')
-            .split(',').map(s => s.trim()).filter(Boolean);
-        for (const id of adminIds) {
-            await safeSend(id, '🤖 *Bot is online and ready.* Your admin access is active.', { parse_mode: 'Markdown' });
-        }
-    } catch (e) {
-        console.error('⚠️ Could not send startup notification:', e.message);
-    }
+        const adminIds = (process.env.TELEGRAM_ADMIN_CHAT_IDS || process.env.TELEGRAM_CHAT_ID || '').split(',').map(s => s.trim()).filter(Boolean);
+        for (const id of adminIds) await safeSend(id, '🤖 *Bot is online and ready.*', { parse_mode: 'Markdown' });
+    } catch (e) { console.error('⚠️ Startup notify failed:', e.message); }
 })();
-process.on('SIGTERM', async () => {
-    console.log('🛑 SIGTERM received — stopping bot polling...');
-    cronJobs.forEach(job => job.stop());
-    try { await bot.stopPolling(); } catch (e) {}
-    process.exit(0);
-});
 
-process.on('SIGINT', async () => {
-    console.log('🛑 SIGINT received — stopping bot polling...');
-    cronJobs.forEach(job => job.stop());
-    try { await bot.stopPolling(); } catch (e) {}
-    process.exit(0);
-});
+process.on('SIGTERM', async () => { cronJobs.forEach(job => job.stop()); try { await bot.stopPolling(); } catch (e) {} process.exit(0); });
+process.on('SIGINT', async () => { cronJobs.forEach(job => job.stop()); try { await bot.stopPolling(); } catch (e) {} process.exit(0); });
