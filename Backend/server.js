@@ -207,13 +207,20 @@ app.post('/api/submit-essay-grade', async (req, res) => {
             const graded = (db.gradedEssays && db.gradedEssays[group]) || [];
             graded.sort((a, b) => b.grade - a.grade);
             
-            let leaderboardMsg = `📢 *The grades for ${topicTitle} are available for review (${group.toUpperCase()})*\n\n🏆 *Top Grades:*\n`;
+            // Use HTML for safer Telegram formatting
+            let leaderboardMsg = `📢 <b>The grades for ${topicTitle} are available for review (${group.toUpperCase()})</b>\n\n🏆 <b>Top Grades:</b>\n`;
             graded.slice(0, 5).forEach((e, i) => {
                 leaderboardMsg += `${i + 1}. ${e.username} - ${e.grade}/100\n`;
             });
 
             const groupId = group === 'scientific' ? process.env.TELEGRAM_GROUP_CHAT_ID : process.env.TELEGRAM_LITERATURE_GROUP_CHAT_ID;
-            await telegramNotify(leaderboardMsg, groupId);
+            console.log(`[Queue Empty] Attempting to send leaderboard to group: ${groupId}`);
+            
+            if (groupId) {
+                await telegramNotify(leaderboardMsg, groupId, 'HTML');
+            } else {
+                console.error(`[Queue Empty] Group ID for ${group} is missing in environment variables!`);
+            }
             
             // Clear active writing so students go back to normal
             await withDB(db => {
@@ -227,6 +234,7 @@ app.post('/api/submit-essay-grade', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+
 
 app.post('/api/send-quiz-result', async (req, res) => {
     try {
