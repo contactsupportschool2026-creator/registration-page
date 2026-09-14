@@ -1,9 +1,3 @@
-/**
- * db.js — Shared database helpers
- * Supports both old array format and new object format:
- * { students: [], activeTests: { scientific: null, literature: null } }
- */
-
 const fs   = require('fs');
 const path = require('path');
 
@@ -97,33 +91,31 @@ function initializeDB() {
     if (!fs.existsSync(DB_PATH)) {
         const initial = {
             students: [],
-            activeTests: {
-                scientific: null,
-                literature: null
-            }
+            activeTests: { scientific: null, literature: null },
+            activeWriting: { scientific: null, literature: null },
+            submittedEssays: { scientific: [], literature: [] },
+            gradedEssays: { scientific: [], literature: [] }
         };
         fs.writeFileSync(DB_PATH, JSON.stringify(initial, null, 2));
         console.log('[db] Database initialized with new structure');
     }
 }
 
-// Normalize any old array format into the new object format
 function normalizeDB(raw) {
     if (Array.isArray(raw)) {
         return {
             students: raw,
-            activeTests: {
-                scientific: null,
-                literature: null
-            }
+            activeTests: { scientific: null, literature: null },
+            activeWriting: { scientific: null, literature: null },
+            submittedEssays: { scientific: [], literature: [] },
+            gradedEssays: { scientific: [], literature: [] }
         };
     }
-    if (!raw.activeTests) {
-        raw.activeTests = { scientific: null, literature: null };
-    }
-    if (!raw.students) {
-        raw.students = [];
-    }
+    if (!raw.activeTests) raw.activeTests = { scientific: null, literature: null };
+    if (!raw.activeWriting) raw.activeWriting = { scientific: null, literature: null };
+    if (!raw.submittedEssays) raw.submittedEssays = { scientific: [], literature: [] };
+    if (!raw.gradedEssays) raw.gradedEssays = { scientific: [], literature: [] };
+    if (!raw.students) raw.students = [];
     return raw;
 }
 
