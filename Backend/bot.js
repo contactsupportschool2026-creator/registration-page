@@ -414,19 +414,32 @@ bot.on('callback_query', async (query) => {
         return;
     }
 
-    if (data.startsWith('setwrit_clear_')) {
-        const group = data.replace('setwrit_clear_', '');
+        if (data.startsWith('setwrit_choose_')) {
+        const parts = data.replace('setwrit_choose_', '');
+        const group = parts.startsWith('scientific') ? 'scientific' : 'literature';
+        const topicId = parts.replace(`${group}_`, '');
+
+        // Find the topic title
+        const topics = [
+            { id: 'WE1_LIT', title: 'Above the Law (Literature)' }
+        ];
+        const topic = topics.find(t => t.id === topicId);
+        const topicTitle = topic ? topic.title : 'Writing Expression';
+
         await withDB(db => {
             if (!db.activeWriting) db.activeWriting = { scientific: null, literature: null };
-            db.activeWriting[group] = null;
+            db.activeWriting[group] = { id: topicId, title: topicTitle }; // Save as object now
+            if (!db.activeTests) db.activeTests = { scientific: null, literature: null };
+            db.activeTests[group] = null;
         });
-        await bot.editMessageText(`✅ Active writing topic for *${group}* has been cancelled.`, {
+
+        await bot.editMessageText(`✅ Writing topic *${topicTitle}* is now active for the *${group}* group.`, {
             chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown'
         });
-        await bot.answerCallbackQuery(query.id, { text: 'Writing cancelled' });
+        await bot.answerCallbackQuery(query.id, { text: 'Writing assigned!' });
         return;
     }
-
+    
     if (data.startsWith('setwrit_choose_')) {
         const parts = data.replace('setwrit_choose_', '');
         const group = parts.startsWith('scientific') ? 'scientific' : 'literature';
