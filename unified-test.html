@@ -488,7 +488,7 @@
   <div class="app-container">
     <!-- START SCREEN -->
     <div id="start-screen" class="screen active">
-      <h1 id="start-title">Reading Comprehension</h1>
+      <h1 id="start-title">Student Hub</h1>
       <p id="start-subtitle">Enter your Telegram username to start the assigned test</p>
       
       <div class="form-group">
@@ -522,7 +522,7 @@
     <div id="writing-screen" class="screen">
       <h1>Writing Expression</h1>
       <div class="question-container" style="min-height: 400px;">
-        <textarea class="writing-area" id="writing-area" placeholder="Type your essay here..."></textarea>
+        <textarea class="writing-area" id="writing-area" placeholder="Type your essay here..." onpaste="return false;" oncopy="return false;" oncut="return false;"></textarea>
       </div>
       <div id="word-count" style="text-align: right; font-size: 0.8rem; color: #999; margin-top: 5px;">0 / 120 words</div>
     </div>
@@ -557,6 +557,12 @@
             <button class="tool-btn" style="color:#d32f2f;" onclick="applyAnnotation('pen-red')">Red Pen</button>
             <button class="tool-btn" style="background:#fffde7;" onclick="applyAnnotation('highlight-yellow')">Highlighter</button>
             <button class="tool-btn" style="text-decoration:underline;" onclick="applyAnnotation('underline-bold')">Underline</button>
+            <span style="font-size:0.8rem; font-weight:bold; margin-right:5px;">Pen Color:</span>
+            <button class="tool-btn" style="color:#d32f2f; border:1px solid #d32f2f;" onclick="setPenColor('#d32f2f')">Red</button>
+            <button class="tool-btn" style="color:#2e7d32; border:1px solid #2e7d32;" onclick="setPenColor('#2e7d32')">Green</button>
+            <button class="tool-btn" style="color:#111111; border:1px solid #111;" onclick="setPenColor('#111111')">Black</button>
+            <button class="tool-btn" style="color:#1565c0; border:1px solid #1565c0;" onclick="setPenColor('#1565c0')">Blue</button>
+            <button class="tool-btn" style="background:#fffde7; border:1px solid #fbc02d;" onclick="setPenColor('#fbc02d')">Yellow</button>
             <button class="tool-btn" onclick="clearAnnotation()">Clear Format</button>
           </div>
           <textarea id="teacher-notes" placeholder="Teacher notes..."></textarea>
