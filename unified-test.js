@@ -321,6 +321,40 @@ const ALL_WRITING_TOPICS = {
       "act ethically and legally.",
       "respect the rules of the community."
     ]
+  },
+  "WE2_MOD": {
+    id: "WE2_MOD",
+    title: "Writing Expression",
+    topic: "All ancient civilizations rose, fell and then vanished because of wars, internal and external conflicts, epidemics, etc. How about our modern civilization? What, in your opinion, threatens the world today? Use the following notes to write a composition of about 100 to 120 words (Illustrate with examples):",
+    bullets: [
+      "nuclear wars / internal and external conflicts",
+      "diseases",
+      "climate change",
+      "pollution",
+      "economic collapse",
+      "natural disasters"
+    ]
+  },
+  "WE3_ANC": {
+    id: "WE3_ANC",
+    title: "Writing Expression",
+    topic: "Write an expository article explaining the causes of the collapse of ancient civilizations. The following notes may help you:",
+    bullets: [
+      "conflicts within ruling families for leadership",
+      "civil wars / external invasion",
+      "Regression in economic and scientific development",
+      "natural disasters: drought, floods..."
+    ]
+  },
+  "WE4_ISL": {
+    id: "WE4_ISL",
+    title: "Writing Expression",
+    topic: "The growth of Islam in the past sparked a golden age of scientific discovery. Using the following notes, write a composition of about 80 to 100 words on the great achievements made by the Islamic civilization in different fields.",
+    bullets: [
+      "Developed architecture (mosques, castles, houses...)",
+      "Spread literature and arts (music, books, poetry...)",
+      "Made many discoveries/ inventions (medicine, astronomy, chemistry)"
+    ]
   }
 };
 
