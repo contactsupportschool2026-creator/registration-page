@@ -394,20 +394,27 @@ bot.on('callback_query', async (query) => {
     if (data === 'setwrit_group_scientific' || data === 'setwrit_group_literature') {
         const group = data === 'setwrit_group_scientific' ? 'scientific' : 'literature';
         
-        const topics = [
-            { id: 'WE1_LIT', title: 'Above the Law (Literature)' }
-            // Add more topics here as needed
+        // Full list of topics with their groups
+        const allTopics = [
+            { id: 'WE1_LIT', title: 'Above the Law', group: 'literature' },
+            { id: 'WE2_MOD', title: 'Modern Civilization Threats', group: 'scientific' },
+            { id: 'WE3_ANC', title: 'Collapse of Ancient Civilizations', group: 'literature' },
+            { id: 'WE4_ISL', title: 'Islamic Golden Age', group: 'literature' }
         ];
 
-        const buttons = topics.map(t => ([{
+        // Filter topics to ONLY show the ones matching the selected group
+        const filteredTopics = allTopics.filter(t => t.group === group);
+
+        const buttons = filteredTopics.map(t => ([{
             text: t.title,
             callback_data: `setwrit_choose_${group}_${t.id}`
         }]));
+        
         buttons.push([{ text: '🚫 Cancel Current Writing', callback_data: `setwrit_clear_${group}` }]);
-        buttons.push([{ text: '📄 Release Corrected PDFs', callback_data: `setwrit_release_${group}` }]); // NEW BUTTON
+        buttons.push([{ text: '📄 Release Corrected PDFs', callback_data: `setwrit_release_${group}` }]);
         buttons.push([{ text: '❌ Close', callback_data: 'setwrit_cancel' }]);
 
-        await bot.editMessageText(`✍️ *Set Writing Expression for ${group.toUpperCase()}*\n\nChoose a topic or release corrected PDFs:`, {
+        await bot.editMessageText(`✍️ *Set Writing Expression for ${group.toUpperCase()}*\n\nChoose a topic:`, {
             chat_id: chatId, message_id: query.message.message_id, parse_mode: 'Markdown',
             reply_markup: { inline_keyboard: buttons }
         });
