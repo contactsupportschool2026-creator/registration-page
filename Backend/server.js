@@ -275,19 +275,61 @@ app.post('/api/send-quiz-result', async (req, res) => {
 app.post('/api/create-checkout', async (req, res) => {
     try {
         const { fullName, telegramUsername, dob, wilaya, shaba, isNizami, schoolName, email } = req.body;
+        
         let formattedUsername = telegramUsername.trim();
         if (!formattedUsername.startsWith('@')) formattedUsername = '@' + formattedUsername;
 
+        // Generate a temporary invoice ID (will be updated with the real one if Chargily succeeds)
+        const tempInvoiceId = `temp_${Date.now()}`;
+        
         const studentData = { 
-            fullName, email: email || 'student@example.com', username: formattedUsername, dob, wilaya, shaba, isNizami, schoolName, 
-            status: 'pending', subscriptionStartDate: null, subscriptionEndDate: null, chatId: null, invoiceId: null, 
-            warnedTimestamp: null, linkSentTimestamp: null, renewalCount: 0 
+            fullName, 
+            email: email || 'student@example.com', 
+            username: formattedUsername, 
+            dob, wilaya, shaba, isNizami, schoolName, 
+            status: 'pending', 
+            subscriptionStartDate: null, 
+            subscriptionEndDate: null, 
+            chatId: null, 
+            invoiceId: tempInvoiceId, 
+            warnedTimestamp: null, 
+            linkSentTimestamp: null, 
+            renewalCount: 0 
         };
         
+        // ==========================================
+        // 1. SAVE STUDENT TO DATABASE IMMEDIATELY
+        // ==========================================
+        await withDB(db => {
+            if (!db.students) db.students = [];
+            
+            // Check if student already exists by username to prevent duplicates
+            const existingIdx = db.students.findIndex(s => s.username === studentData.username);
+            if (existingIdx !== -1) {
+                // Update existing record
+                db.students[existingIdx] = { ...db.students[existingIdx], ...studentData };
+            } else {
+                // Add new record
+                db.students.push(studentData);
+            }
+        });
+
+        // ==========================================
+        // 2. SEND TELEGRAM NOTIFICATION (NEW REGISTRATION)
+        // ==========================================
+        await telegramNotify(`🆕 *New Registration*\n\nName: ${fullName}\nTelegram: ${formattedUsername}\nWilaya: ${wilaya}\nShaba: ${shaba}\n\nStatus: *Pending (Awaiting Payment)*`);
+
+        // ==========================================
+        // 3. CREATE CHARGILY CHECKOUT
+        // ==========================================
         const chargilyPayload = { 
-            amount: 2000, currency: 'dzd', payment_method: 'edahabia', 
-            success_url: process.env.FRONTEND_URL + '/payment.html', webhook_endpoint: process.env.BACKEND_URL + '/api/webhook/chargily', 
-            description: 'School Registration: ' + fullName, metadata: { full_name: fullName, telegram: formattedUsername, wilaya, shaba } 
+            amount: 2000, 
+            currency: 'dzd', 
+            payment_method: 'edahabia', 
+            success_url: process.env.FRONTEND_URL + '/payment.html', 
+            webhook_endpoint: process.env.BACKEND_URL + '/api/webhook/chargily', 
+            description: 'School Registration: ' + fullName, 
+            metadata: { full_name: fullName, telegram: formattedUsername, wilaya, shaba } 
         };
 
         const chargilyResponse = await withRetry(
@@ -297,19 +339,29 @@ app.post('/api/create-checkout', async (req, res) => {
             { label: 'chargily:create-checkout' }
         );
 
-        studentData.invoiceId = chargilyResponse.data.id;
-        await withDB(db => { if (!db.students) db.students = []; db.students.push(studentData); });
-        await telegramNotify('*New Registration*\nName: ' + fullName + '\nTelegram: ' + formattedUsername + '\nWilaya: ' + wilaya + '\nShaba: ' + shaba + '\nInvoice: ' + chargilyResponse.data.id);
+        // ==========================================
+        // 4. UPDATE STUDENT WITH REAL INVOICE ID
+        // ==========================================
+        const realInvoiceId = chargilyResponse.data.id;
+        await withDB(db => {
+            const student = db.students.find(s => s.username === formattedUsername);
+            if (student) student.invoiceId = realInvoiceId;
+        });
+
+        // 5. REDIRECT STUDENT TO PAYMENT PAGE
         res.json({ checkoutUrl: chargilyResponse.data.checkout_url });
+            
     } catch (error) {
         console.error('Checkout Error:', error.message);
-        let errorMsg = error.message, errorStatus = 500;
-        if (error.response) {
-            errorStatus = error.response.status;
-            if (error.response.data) errorMsg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.message || JSON.stringify(error.response.data));
+        
+        // Even if Chargily fails, the student is saved in the DB.
+        // We return a fallback URL or ask them to contact support.
+        let errorMsg = 'Failed to initiate payment. Your registration is saved, please contact support to complete payment.';
+        if (error.response && error.response.data) {
+            errorMsg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.message || JSON.stringify(error.response.data));
         }
-        await telegramNotify('❌ *CHECKOUT FAILED*\nError: ' + errorMsg + '\nStatus: ' + errorStatus);
-        res.status(errorStatus).json({ error: errorMsg });
+        await telegramNotify(`❌ *CHECKOUT FAILED*\nStudent: ${fullName}\nError: ${errorMsg}`);
+        res.status(500).json({ error: errorMsg });
     }
 });
 
