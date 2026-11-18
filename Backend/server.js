@@ -153,15 +153,31 @@ app.post('/api/teacher-login', (req, res) => {
 app.post('/api/submit-essay', async (req, res) => {
     try {
         const { username, group, topicId, content } = req.body;
-        if (!username || !group || !topicId || !content) return res.status(400).json({ success: false });
+        console.log(`[API /submit-essay] Received essay from ${username} for group ${group}`);
+        
+        if (!username || !group || !topicId || !content) {
+            console.error('[API /submit-essay] Missing required fields');
+            return res.status(400).json({ success: false });
+        }
 
         await withDB(db => {
-            if (!db.submittedEssays) db.submittedEssays = { scientific: [], literature: [] };
-            db.submittedEssays[group].push({ id: Date.now().toString(), username, topicId, content });
+            // Ensure the structure exists and is an array
+            if (!db.submittedEssays) db.submittedEssays = {};
+            if (!Array.isArray(db.submittedEssays[group])) db.submittedEssays[group] = [];
+            
+            // Push the new essay
+            db.submittedEssays[group].push({
+                id: Date.now().toString(),
+                username,
+                topicId,
+                content
+            });
+            console.log(`[API /submit-essay] Essay saved successfully. Total for ${group}: ${db.submittedEssays[group].length}`);
         });
+        
         res.json({ success: true });
     } catch (error) {
-        console.error('Submit Essay Error:', error.message);
+        console.error('[API /submit-essay] Error:', error.message);
         res.status(500).json({ success: false });
     }
 });
@@ -169,14 +185,18 @@ app.post('/api/submit-essay', async (req, res) => {
 app.get('/api/get-essays-for-correction', async (req, res) => {
     try {
         const { group } = req.query;
+        console.log(`[API /get-essays-for-correction] Fetching essays for group: ${group}`);
+        
         const db = await readDB();
-        const essays = (db.submittedEssays && db.submittedEssays[group]) || [];
+        const essays = (db.submittedEssays && Array.isArray(db.submittedEssays[group])) ? db.submittedEssays[group] : [];
+        
+        console.log(`[API /get-essays-for-correction] Found ${essays.length} essays`);
         res.json({ essays });
     } catch (error) {
+        console.error('[API /get-essays-for-correction] Error:', error.message);
         res.status(500).json({ essays: [] });
     }
 });
-
 app.post('/api/submit-essay-grade', async (req, res) => {
     try {
         const { essayId, group, grade, notes, correctedContent } = req.body;
